@@ -1,0 +1,38 @@
+{
+  "name": "lucidcli",
+  "version": "0.1.0",
+  "description": "A simple, type safe CLI framework for TypeScript",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "type": "module",
+  "scripts": {
+    "test": "vitest tests",
+    "build": "tsc -b",
+    "format": "prettier --check .",
+    "format!": "prettier --write .",
+    "lint": "eslint .",
+    "lint!": "eslint --fix ."
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "cli",
+    "command",
+    "args",
+    "argv",
+    "option"
+  ],
+  "author": "trailfrost",
+  "license": "MIT",
+  "packageManager": "pnpm@10.17.1",
+  "devDependencies": {
+    "@eslint/js": "^9.36.0",
+    "eslint": "^9.36.0",
+    "globals": "^16.4.0",
+    "prettier": "^3.6.2",
+    "typescript": "^5.9.2",
+    "typescript-eslint": "^8.45.0",
+    "vitest": "^3.2.4"
+  }
+}

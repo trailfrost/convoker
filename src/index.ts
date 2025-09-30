@@ -1,1 +1,3 @@
-console.log("Hello, World!");
+// TODO
+
+export * from "./input";

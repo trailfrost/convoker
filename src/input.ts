@@ -2,6 +2,18 @@ export interface Input {
   [x: string]: Option<any, any, any> | Positional<any, any, any>;
 }
 
+export type Kind = "boolean" | "string" | "number" | "bigint";
+
+export type TypeOf<T extends Kind> = T extends "boolean"
+  ? boolean
+  : T extends "string"
+    ? string
+    : T extends "number"
+      ? number
+      : T extends "bigint"
+        ? bigint
+        : never;
+
 export type InferInput<T extends Input> = {
   [K in keyof T]: T[K] extends Option<any, any, any>
     ? InferOption<T[K]>
@@ -12,31 +24,31 @@ export type InferOption<T> =
   T extends Option<infer Kind, infer Required, infer List>
     ? List extends true
       ? Required extends true
-        ? Kind[]
-        : Kind[] | undefined
+        ? TypeOf<Kind>[]
+        : TypeOf<Kind>[] | undefined
       : Required extends true
-        ? Kind
-        : Kind | undefined
+        ? TypeOf<Kind>
+        : TypeOf<Kind> | undefined
     : never;
 
 export type InferPositional<T> =
   T extends Positional<infer Kind, infer Required, infer List>
     ? List extends true
       ? Required extends true
-        ? Kind[]
-        : Kind[] | undefined
+        ? TypeOf<Kind>[]
+        : TypeOf<Kind>[] | undefined
       : Required extends true
-        ? Kind
-        : Kind | undefined
+        ? TypeOf<Kind>
+        : TypeOf<Kind> | undefined
     : never;
 
 export class Option<
-  TKind,
+  TKind extends Kind,
   TRequired extends boolean = true,
   TList extends boolean = false,
 > {
   $names: string[];
-  $default: TKind | undefined = undefined;
+  $default: TypeOf<TKind> | undefined = undefined;
   $required: TRequired = true as TRequired;
   $list: TList = false as TList;
 
@@ -59,18 +71,18 @@ export class Option<
     return this as any;
   }
 
-  default(value: TKind): this {
+  default(value: TypeOf<TKind>): this {
     this.$default = value;
     return this;
   }
 }
 
 export class Positional<
-  TKind,
+  TKind extends Kind,
   TRequired extends boolean = true,
   TList extends boolean = false,
 > {
-  $default: TKind | undefined = undefined;
+  $default: TypeOf<TKind> | undefined = undefined;
   $required: TRequired = true as TRequired;
   $list: TList = false as TList;
 
@@ -89,14 +101,14 @@ export class Positional<
     return this as any;
   }
 
-  default(value: TKind): this {
+  default(value: TypeOf<TKind>): this {
     this.$default = value;
     return this;
   }
 }
 
 export const c = {
-  option: <T>(...names: string[]) => new Option<T>(names),
-  positional: <T>() => new Positional<T>(),
-  argument: <T>() => new Positional<T>(),
+  option: <T extends Kind>(...names: string[]) => new Option<T>(names),
+  positional: <T extends Kind>() => new Positional<T>(),
+  argument: <T extends Kind>() => new Positional<T>(),
 };

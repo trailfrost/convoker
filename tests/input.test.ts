@@ -11,7 +11,7 @@ import {
 // --- Runtime tests ---
 describe("Option", () => {
   it("strips leading dashes from names", () => {
-    const opt = new Option<string>(["--foo", "-f", "bar"]);
+    const opt = new Option<"string">(["--foo", "-f", "bar"]);
     expect(opt.$names).toEqual(["foo", "f", "bar"]);
   });
 
@@ -53,7 +53,7 @@ describe("Positional", () => {
   });
 
   it("assigns a default value when .default() is called", () => {
-    const pos = c.positional<string>().default("foo");
+    const pos = c.positional<"string">().default("foo");
     expect(pos.$default).toBe("foo");
   });
 });
@@ -61,45 +61,39 @@ describe("Positional", () => {
 // --- Type-level tests ---
 describe("Type inference", () => {
   it("infers Option types correctly", () => {
-    type A = InferOption<Option<string, true, false>>;
-    type B = InferOption<Option<number, false, false>>;
-    type C = InferOption<Option<boolean, true, true>>;
-    type D = InferOption<Option<Date, false, true>>;
+    type A = InferOption<Option<"string", true, false>>;
+    type B = InferOption<Option<"number", false, false>>;
+    type C = InferOption<Option<"boolean", true, true>>;
 
     // compile-time checks:
     const a: A = "hello"; // required string
     const b: B = undefined as number | undefined; // optional number
     const c: C = [true, false]; // required array of booleans
-    const d: D = undefined as Date[] | undefined; // optional array of Dates
 
     expect(a).toBe("hello");
     expect(b).toBeUndefined();
     expect(c).toEqual([true, false]);
-    expect(d).toBeUndefined();
   });
 
   it("infers Positional types correctly", () => {
-    type A = InferPositional<Positional<string, true, false>>;
-    type B = InferPositional<Positional<number, false, false>>;
-    type C = InferPositional<Positional<boolean, true, true>>;
-    type D = InferPositional<Positional<Date, false, true>>;
+    type A = InferPositional<Positional<"string", true, false>>;
+    type B = InferPositional<Positional<"number", false, false>>;
+    type C = InferPositional<Positional<"boolean", true, true>>;
 
     const a: A = "foo";
     const b: B = undefined as number | undefined;
     const c: C = [true];
-    const d: D = undefined as Date[] | undefined;
 
     expect(a).toBe("foo");
     expect(b).toBeUndefined();
     expect(c).toEqual([true]);
-    expect(d).toBeUndefined();
   });
 
   it("infers Input object correctly", () => {
     // eslint-disable-next-line
     const input = {
       foo: c.option("--foo").optional(),
-      bar: c.positional<string>().list(),
+      bar: c.positional<"string">().list(),
     };
 
     type Inferred = InferInput<typeof input>;

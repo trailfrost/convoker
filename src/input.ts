@@ -1,10 +1,19 @@
+/**
+ * Input for a command.
+ */
 export interface Input {
   [x: string]: Option<any, any, any> | Positional<any, any, any>;
 }
 
+/**
+ * All supported types.
+ */
 export type Kind = "boolean" | "string" | "number" | "bigint";
 
-export type TypeOf<T extends Kind> = T extends "boolean"
+/**
+ * Converts a `Kind` to a TypeScript type.
+ */
+export type TypeOf<T> = T extends "boolean"
   ? boolean
   : T extends "string"
     ? string
@@ -15,13 +24,15 @@ export type TypeOf<T extends Kind> = T extends "boolean"
         : never;
 
 export type InferInput<T extends Input> = {
-  [K in keyof T]: T[K] extends Option<any, any, any>
-    ? InferOption<T[K]>
-    : InferPositional<T[K]>;
+  [K in keyof T]: InferEntry<T[K]>;
 };
 
-export type InferOption<T> =
-  T extends Option<infer Kind, infer Required, infer List>
+export type InferEntry<T> = T extends {
+  $kind: infer Kind;
+  $required: infer Required;
+  $list: infer List;
+}
+  ? Kind extends string
     ? List extends true
       ? Required extends true
         ? TypeOf<Kind>[]
@@ -29,30 +40,22 @@ export type InferOption<T> =
       : Required extends true
         ? TypeOf<Kind>
         : TypeOf<Kind> | undefined
-    : never;
-
-export type InferPositional<T> =
-  T extends Positional<infer Kind, infer Required, infer List>
-    ? List extends true
-      ? Required extends true
-        ? TypeOf<Kind>[]
-        : TypeOf<Kind>[] | undefined
-      : Required extends true
-        ? TypeOf<Kind>
-        : TypeOf<Kind> | undefined
-    : never;
+    : never
+  : never;
 
 export class Option<
   TKind extends Kind,
   TRequired extends boolean = true,
   TList extends boolean = false,
 > {
+  $kind: TKind;
   $names: string[];
   $default: TypeOf<TKind> | undefined = undefined;
   $required: TRequired = true as TRequired;
   $list: TList = false as TList;
 
-  constructor(names: string[]) {
+  constructor(kind: TKind, names: string[]) {
+    this.$kind = kind;
     this.$names = names.map((name) => name.replace(/^-+/, ""));
   }
 
@@ -82,9 +85,14 @@ export class Positional<
   TRequired extends boolean = true,
   TList extends boolean = false,
 > {
+  $kind: TKind;
   $default: TypeOf<TKind> | undefined = undefined;
   $required: TRequired = true as TRequired;
   $list: TList = false as TList;
+
+  constructor(kind: TKind) {
+    this.$kind = kind;
+  }
 
   list(): Positional<TKind, TRequired, true> {
     this.$list = true as TList;
@@ -108,7 +116,7 @@ export class Positional<
 }
 
 export const c = {
-  option: <T extends Kind>(...names: string[]) => new Option<T>(names),
-  positional: <T extends Kind>() => new Positional<T>(),
-  argument: <T extends Kind>() => new Positional<T>(),
+  option: (kind: Kind, ...names: string[]) => new Option(kind, names),
+  positional: (kind: Kind) => new Positional(kind),
+  argument: (kind: Kind) => new Positional(kind),
 };

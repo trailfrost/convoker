@@ -43,6 +43,22 @@ export type InferEntry<T> = T extends {
     : never
   : never;
 
+export function convert<TKind extends Kind>(
+  kind: TKind,
+  value: string
+): TypeOf<TKind> {
+  switch (kind) {
+    case "boolean":
+      return (value === "true") as any;
+    case "bigint":
+      return BigInt(value) as any;
+    case "number":
+      return parseFloat(value) as any;
+    case "string":
+      return value as any;
+  }
+}
+
 export class Option<
   TKind extends Kind,
   TRequired extends boolean = true,
@@ -77,19 +93,6 @@ export class Option<
   default(value: TypeOf<TKind>): this {
     this.$default = value;
     return this;
-  }
-
-  $convert(value: string): TypeOf<TKind> {
-    switch (this.$kind) {
-      case "boolean":
-        return (value === "true") as any;
-      case "bigint":
-        return BigInt(value) as any;
-      case "number":
-        return parseFloat(value) as any;
-      case "string":
-        return value as any;
-    }
   }
 }
 

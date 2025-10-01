@@ -1,8 +1,13 @@
-import { Option, type Input } from "./input";
+import { convert, Option, Positional, type Input } from "./input";
 
 class LucidCLIError extends Error {
   constructor(
-    public type: "unknown_option" | "too_many_arguments" | "error_thrown"
+    public type:
+      | "unknown_option"
+      | "too_many_arguments"
+      | "missing_required_option"
+      | "missing_required_argument",
+    public data: { command: Command<any> } & Record<string, unknown>
   ) {
     super(`[LUCID_CLI_ERROR] ${type}`);
   }
@@ -11,6 +16,12 @@ class LucidCLIError extends Error {
 export interface CommandAlias<T extends Input = Input> {
   command: Command<T>;
   alias?: string;
+}
+
+export interface ParseReturn {
+  command: Command<any>;
+  opts: Record<string, unknown>;
+  args: Record<string, unknown>;
 }
 
 export type ActionFn<T extends Input> = (input: T) => void | Promise<void>;
@@ -83,13 +94,14 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
-  parse(argv: string[]) {
-    // TODO make sure all required arguments/options are there
-
+  parse(argv: string[]): ParseReturn {
     // eslint-disable-next-line
     let command: Command<any> = this;
     const opts: Record<string, unknown> = {};
     const args: Record<string, unknown> = {};
+
+    const positionalArgs = Object.entries(command.extractPositional());
+    let position = 0;
 
     for (let i = 0; i < argv.length; i++) {
       const arg = argv[i];
@@ -99,17 +111,17 @@ export class Command<T extends Input = Input> {
         if (!option || !(option instanceof Option)) {
           if (command.$allowUnknownOptions) continue;
           else {
-            throw new LucidCLIError("unknown_option");
+            throw new LucidCLIError("unknown_option", { command, key });
           }
         }
 
         if (option.$kind === "boolean") {
-          args[key] = true;
+          opts[key] = true;
         } else {
-          if (value) args[key] = option.$convert(value);
+          if (value) opts[key] = convert(option.$kind, value);
           else {
             const value = argv[++i];
-            args[key] = option.$convert(value);
+            opts[key] = convert(option.$kind, value);
           }
         }
       } else if (arg.startsWith("-")) {
@@ -125,7 +137,7 @@ export class Command<T extends Input = Input> {
           if (!option || !(option instanceof Option)) {
             if (command.$allowUnknownOptions) continue;
             else {
-              throw new LucidCLIError("unknown_option");
+              throw new LucidCLIError("unknown_option", { command, key });
             }
           }
 
@@ -134,10 +146,37 @@ export class Command<T extends Input = Input> {
             nonBooleanFound = true;
           }
 
-          args[key] = !value || option.$convert(value);
+          opts[key] = !value || convert(option.$kind, value);
         }
       } else {
-        // TODO
+        const [key, entry] = positionalArgs[position];
+        args[key] = convert(entry.$kind, arg);
+        position++;
+      }
+    }
+
+    for (const key in command.$input) {
+      const entry = command.$input[key];
+      if (entry instanceof Option) {
+        if (!opts[key] && entry.$required) {
+          if (entry.$default) opts[key] = entry.$default;
+          else {
+            throw new LucidCLIError("missing_required_option", {
+              command,
+              entry,
+            });
+          }
+        }
+      } else if (entry instanceof Positional) {
+        if (!args[key] && entry.$required) {
+          if (entry.$default) args[key] = entry.$default;
+          else {
+            throw new LucidCLIError("missing_required_argument", {
+              command,
+              entry,
+            });
+          }
+        }
       }
     }
 
@@ -146,6 +185,22 @@ export class Command<T extends Input = Input> {
       opts,
       args,
     };
+  }
+
+  printHelpScreen(): this {
+    // TODO
+    return this;
+  }
+
+  extractPositional(): Record<string, Positional<any, any, any>> {
+    const positional: Record<string, unknown> = {};
+    for (const key in this.$input) {
+      if (this.$input[key] instanceof Positional) {
+        positional[key] = this.$input[key];
+      }
+    }
+
+    return positional as any;
   }
 
   async run(argv?: string[]): Promise<this> {
@@ -162,15 +217,36 @@ export class Command<T extends Input = Input> {
     try {
       const { command, opts, args } = this.parse(argv);
       if (!command.$fn) {
-        throw new Error("Show help screen"); // TODO
+        return this.printHelpScreen();
       }
 
       command.$fn({ ...opts, ...args });
+      return this;
     } catch (e) {
-      throw new Error(`Catch not implemented: ${e}`); // TODO
-    }
+      if (e instanceof LucidCLIError) {
+        switch (e.type) {
+          case "missing_required_argument":
+            console.error(
+              `missing required argument '${(e.data.entry as { names: string[] }).names[0]}'!`
+            );
+            break;
+          case "missing_required_option":
+            console.error(
+              `missing required option '${(e.data.entry as { names: string[] }).names[0]}'!`
+            );
+            break;
+          case "too_many_arguments":
+            console.error("too many arguments!");
+            break;
+          case "unknown_option":
+            console.error(`unknown option '${e.data.key}'!`);
+            break;
+        }
+        return this.printHelpScreen();
+      }
 
-    return this;
+      throw e;
+    }
   }
 }
 

@@ -78,6 +78,19 @@ export class Option<
     this.$default = value;
     return this;
   }
+
+  $convert(value: string): TypeOf<TKind> {
+    switch (this.$kind) {
+      case "boolean":
+        return (value === "true") as any;
+      case "bigint":
+        return BigInt(value) as any;
+      case "number":
+        return parseFloat(value) as any;
+      case "string":
+        return value as any;
+    }
+  }
 }
 
 export class Positional<

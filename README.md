@@ -3,33 +3,31 @@
 A simple, type safe CLI framework for TypeScript.
 
 ```ts
-import process from "node:process";
-import { Command, c } from "lucidcli";
+import { c, Command } from "lucidcli";
 
-const program = new Command("calc")
-  .description("A basic calculator.");
+const program = new Command("calc").description("A basic calculator.");
 
 program
-  .command("add")
+  .subCommand("add")
   .description("Adds two numbers.")
   .input({
-    x: c.option("--x", "-x").required(),
-    y: c.option("--y", "-y").required(),
+    x: c.option("number", "-x", "--x"),
+    y: c.option("number", "-y", "--y"),
   })
   .action(({ x, y }) => {
     console.log(`${x} + ${y} = ${x + y}`);
-  })
+  });
 
 program
-  .command("sub")
+  .subCommand("sub")
   .description("Subtracts any amount of numbers.")
   .input({
-    numbers: c.option("--numbers", "-n").list()
+    numbers: c.option("number", "--numbers", "-n").list(),
   })
   .action(({ numbers }) => {
-    const sub = ${numbers.reduce((a, b) => a - b, 0)};
-    console.log(`${numbers.join(" + ")} = ${sub}`)
-  })
+    const sub = numbers.reduce((a, b) => a - b, 0);
+    console.log(`${numbers.join(" + ")} = ${sub}`);
+  });
 
-await program.run();
+program.run();
 ```

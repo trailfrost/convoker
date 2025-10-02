@@ -1,4 +1,4 @@
-import { convert, Option, Positional, type Input } from "./input";
+import { convert, InferInput, Option, Positional, type Input } from "./input";
 
 class LucidCLIError extends Error {
   constructor(
@@ -24,7 +24,9 @@ export interface ParseReturn {
   args: Record<string, unknown>;
 }
 
-export type ActionFn<T extends Input> = (input: T) => void | Promise<void>;
+export type ActionFn<T extends Input> = (
+  input: InferInput<T>
+) => void | Promise<void>;
 
 export class Command<T extends Input = Input> {
   $names: string[];
@@ -217,7 +219,7 @@ export class Command<T extends Input = Input> {
         return this.printHelpScreen();
       }
 
-      command.$fn({ ...opts, ...args });
+      command.$fn({ ...opts, ...args } as any);
       return this;
     } catch (e) {
       if (e instanceof LucidCLIError) {

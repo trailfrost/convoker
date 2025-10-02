@@ -1,19 +1,10 @@
-/**
- * Input for a command.
- */
 export interface Input {
   [x: string]: Option<any, any, any> | Positional<any, any, any>;
 }
 
-/**
- * All supported types.
- */
 export type Kind = "boolean" | "string" | "number" | "bigint";
 
-/**
- * Converts a `Kind` to a TypeScript type.
- */
-export type TypeOf<T> = T extends "boolean"
+export type TypeOf<T extends Kind> = T extends "boolean"
   ? boolean
   : T extends "string"
     ? string
@@ -28,19 +19,17 @@ export type InferInput<T extends Input> = {
 };
 
 export type InferEntry<T> = T extends {
-  $kind: infer Kind;
+  $kind: infer TKind extends Kind;
   $required: infer Required;
   $list: infer List;
 }
-  ? Kind extends string
-    ? List extends true
-      ? Required extends true
-        ? TypeOf<Kind>[]
-        : TypeOf<Kind>[] | undefined
-      : Required extends true
-        ? TypeOf<Kind>
-        : TypeOf<Kind> | undefined
-    : never
+  ? List extends true
+    ? Required extends true
+      ? TypeOf<TKind>[]
+      : TypeOf<TKind>[] | undefined
+    : Required extends true
+      ? TypeOf<TKind>
+      : TypeOf<TKind> | undefined
   : never;
 
 export function convert<TKind extends Kind>(
@@ -132,7 +121,8 @@ export class Positional<
 }
 
 export const c = {
-  option: (kind: Kind, ...names: string[]) => new Option(kind, names),
-  positional: (kind: Kind) => new Positional(kind),
-  argument: (kind: Kind) => new Positional(kind),
+  option: <T extends Kind>(kind: T, ...names: string[]) =>
+    new Option(kind, names),
+  positional: <T extends Kind>(kind: T) => new Positional(kind),
+  argument: <T extends Kind>(kind: T) => new Positional(kind),
 };

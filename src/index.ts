@@ -95,96 +95,93 @@ export class Command<T extends Input = Input> {
   }
 
   parse(argv: string[]): ParseReturn {
+    // alias to `this` is necessary to go through the tree
     // eslint-disable-next-line
     let command: Command<any> = this;
     const opts: Record<string, unknown> = {};
     const args: Record<string, unknown> = {};
+    const seen = new Set<string>(); // track seen keys
 
     const positionalArgs = Object.entries(command.extractPositional());
     let position = 0;
 
+    const getOption = (key: string) => {
+      const opt = command.$input[key];
+      if (!opt || !(opt instanceof Option)) {
+        if (command.$allowUnknownOptions) return null;
+        throw new LucidCLIError("unknown_option", { command, key });
+      }
+      return opt;
+    };
+
+    const setOption = (
+      key: string,
+      option: Option<any, any, any>,
+      value?: string
+    ) => {
+      seen.add(key);
+      if (option.$kind === "boolean") {
+        opts[key] = true;
+      } else {
+        if (value === undefined) value = argv[++position];
+        opts[key] = convert(option.$kind, value);
+      }
+    };
+
     for (let i = 0; i < argv.length; i++) {
       const arg = argv[i];
+
       if (arg.startsWith("--")) {
+        // --long[=value]
         const [key, value] = arg.slice(2).split("=");
-        const option = command.$input[key];
-        if (!option || !(option instanceof Option)) {
-          if (command.$allowUnknownOptions) continue;
-          else {
-            throw new LucidCLIError("unknown_option", { command, key });
-          }
-        }
-
-        if (option.$kind === "boolean") {
-          opts[key] = true;
-        } else {
-          if (value) opts[key] = convert(option.$kind, value);
-          else {
-            const value = argv[++i];
-            opts[key] = convert(option.$kind, value);
-          }
-        }
+        const option = getOption(key);
+        if (option) setOption(key, option, value);
       } else if (arg.startsWith("-")) {
-        const split = arg.slice(1).split("=");
-        const key = split[0];
-        let value = split[1];
-        let nonBooleanFound = true;
+        // -abc or -k=value
+        const [shortKeys, value] = arg.slice(1).split("=");
+        const chars = shortKeys.split("");
+        let usedValue: string | undefined = value;
 
-        const keys = key.split("");
+        for (const char of chars) {
+          const option = getOption(char);
+          if (!option) continue;
 
-        for (const key of keys) {
-          const option = command.$input[key];
-          if (!option || !(option instanceof Option)) {
-            if (command.$allowUnknownOptions) continue;
-            else {
-              throw new LucidCLIError("unknown_option", { command, key });
-            }
+          if (option.$kind !== "boolean" && usedValue === undefined) {
+            usedValue = argv[++i];
           }
-
-          if (option.$kind !== "boolean" && !nonBooleanFound) {
-            value = argv[++i];
-            nonBooleanFound = true;
-          }
-
-          opts[key] = !value || convert(option.$kind, value);
+          setOption(char, option, usedValue);
+          usedValue = undefined; // only first consumes
         }
       } else {
-        const [key, entry] = positionalArgs[position];
+        // positional
+        const [key, entry] = positionalArgs[position++] ?? [];
+        if (!key) continue;
+        seen.add(key);
         args[key] = convert(entry.$kind, arg);
-        position++;
       }
     }
 
-    for (const key in command.$input) {
-      const entry = command.$input[key];
-      if (entry instanceof Option) {
-        if (!opts[key] && entry.$required) {
-          if (entry.$default) opts[key] = entry.$default;
-          else {
-            throw new LucidCLIError("missing_required_option", {
-              command,
-              entry,
-            });
-          }
-        }
-      } else if (entry instanceof Positional) {
-        if (!args[key] && entry.$required) {
-          if (entry.$default) args[key] = entry.$default;
-          else {
-            throw new LucidCLIError("missing_required_argument", {
-              command,
-              entry,
-            });
-          }
-        }
+    // fill defaults / check required
+    for (const [key, entry] of Object.entries(command.$input) as [
+      string,
+      Option<any, any, any> | Positional<any, any, any>,
+    ][]) {
+      if (seen.has(key)) continue; // already handled
+      const target = entry instanceof Option ? opts : args;
+
+      if (entry.$default !== undefined) {
+        target[key] = entry.$default;
+      } else if (entry.$required) {
+        throw new LucidCLIError(
+          entry instanceof Option
+            ? "missing_required_option"
+            : "missing_required_argument",
+          { command, entry }
+        );
       }
     }
 
-    return {
-      command,
-      opts,
-      args,
-    };
+    return { command, opts, args };
   }
 
   printHelpScreen(): this {

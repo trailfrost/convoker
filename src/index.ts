@@ -1,6 +1,6 @@
 import { convert, InferInput, Option, Positional, type Input } from "./input";
 
-class LucidCLIError extends Error {
+export class LucidCLIError extends Error {
   constructor(
     public type:
       | "unknown_option"
@@ -27,6 +27,11 @@ export interface ParseReturn {
 export type ActionFn<T extends Input> = (
   input: InferInput<T>
 ) => void | Promise<void>;
+
+interface MapEntry {
+  entry: Option<any, any, any> | Positional<any, any, any>;
+  key: string;
+}
 
 export class Command<T extends Input = Input> {
   $names: string[];
@@ -96,50 +101,51 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
-  parse(argv: string[]): ParseReturn {
-    // alias to `this` is necessary to go through the tree
+  parse(argv: string[]): { command: Command; input: InferInput<T> } {
+    // alias to this is necessary to go through the tree
     // eslint-disable-next-line
     let command: Command<any> = this;
-    const opts: Record<string, unknown> = {};
-    const args: Record<string, unknown> = {};
-    const seen = new Set<string>(); // track seen keys
+    let found = false;
+    const input: Record<string, unknown> = {};
 
-    const positionalArgs = Object.entries(command.extractPositional());
-    let position = 0;
+    const args: string[] = [];
+    const opts: Record<string, string> = {};
 
-    const getOption = (key: string) => {
-      const opt = command.$input[key];
-      if (!opt || !(opt instanceof Option)) {
+    const map = command.buildInputMap();
+
+    function getOption(key: string) {
+      if (!map.has(key)) {
         if (command.$allowUnknownOptions) return null;
         throw new LucidCLIError("unknown_option", { command, key });
       }
+      const opt = command.$input[map.get(key)!.key];
       return opt;
-    };
+    }
 
-    const setOption = (
+    function setOption(
       key: string,
       option: Option<any, any, any>,
       value?: string
-    ) => {
-      seen.add(key);
+    ) {
       if (option.$kind === "boolean") {
-        opts[key] = true;
-      } else {
-        if (value === undefined) value = argv[++position];
-        opts[key] = convert(option.$kind, value);
+        opts[key] = "true";
+      } else if (value) {
+        opts[key] = value;
       }
-    };
+    }
 
     for (let i = 0; i < argv.length; i++) {
       const arg = argv[i];
-
       if (arg.startsWith("--")) {
-        // --long[=value]
+        // --long[=value] or --long [value]
         const [key, value] = arg.slice(2).split("=");
         const option = getOption(key);
-        if (option) setOption(key, option, value);
+        if (option) {
+          if (!value) setOption(key, option, argv[++i]);
+          else setOption(key, option, value);
+        }
       } else if (arg.startsWith("-")) {
-        // -abc or -k=value
+        // -abc or -k[=value] or -k [value]
         const [shortKeys, value] = arg.slice(1).split("=");
         const chars = shortKeys.split("");
         let usedValue: string | undefined = value;
@@ -156,50 +162,71 @@ export class Command<T extends Input = Input> {
         }
       } else {
         // positional
-        const [key, entry] = positionalArgs[position++] ?? [];
-        if (!key) continue;
-        seen.add(key);
-        args[key] = convert(entry.$kind, arg);
+        if (this.$children.get(arg) && !found) {
+          command = this.$children.get(arg)!.command;
+        } else {
+          found = true;
+        }
+
+        if (found) args.push(arg);
       }
     }
 
     // fill defaults / check required
-    for (const [key, entry] of Object.entries(command.$input) as [
-      string,
-      Option<any, any, any> | Positional<any, any, any>,
-    ][]) {
-      if (seen.has(key)) continue; // already handled
-      const target = entry instanceof Option ? opts : args;
+    for (const opt in opts) {
+      const mapEntry = map.get(opt);
+      if (!mapEntry) continue;
 
-      if (entry.$default !== undefined) {
-        target[key] = entry.$default;
-      } else if (entry.$required) {
-        throw new LucidCLIError(
-          entry instanceof Option
-            ? "missing_required_option"
-            : "missing_required_argument",
-          { command, entry }
-        );
+      const { entry, key } = mapEntry;
+      input[key] = convert(entry.$kind, opts[opt]);
+    }
+
+    for (const i in args) {
+      const mapEntry = map.get(i);
+      if (!mapEntry) continue;
+
+      const { entry, key } = mapEntry;
+      if (!args[i]) {
+        if (entry.$default) {
+          input[key] = entry.$default;
+        } else if (entry.$required) {
+          throw new LucidCLIError("missing_required_argument", {
+            command,
+            key,
+          });
+        }
+      } else {
+        input[key] = convert(entry.$kind, args[i]);
       }
     }
 
-    return { command, opts, args };
+    return { input: input as InferInput<T>, command };
+  }
+
+  private buildInputMap(): Map<string | number, MapEntry> {
+    const map = new Map<string | number, MapEntry>();
+
+    let i = 0;
+    for (const key in this.$input) {
+      const entry = this.$input[key];
+      if (entry instanceof Positional) {
+        map.set(i++, { entry, key: key });
+      } else {
+        for (const name of entry.$names) {
+          map.set(name, { entry, key: key });
+        }
+      }
+    }
+
+    const parentMap = this.$parent?.buildInputMap();
+    if (!parentMap) return map;
+
+    return new Map([...map, ...parentMap]);
   }
 
   printHelpScreen(): this {
     // TODO
     return this;
-  }
-
-  extractPositional(): Record<string, Positional<any, any, any>> {
-    const positional: Record<string, unknown> = {};
-    for (const key in this.$input) {
-      if (this.$input[key] instanceof Positional) {
-        positional[key] = this.$input[key];
-      }
-    }
-
-    return positional as any;
   }
 
   async run(argv?: string[]): Promise<this> {
@@ -214,12 +241,12 @@ export class Command<T extends Input = Input> {
     }
 
     try {
-      const { command, opts, args } = this.parse(argv);
+      const { command, input } = this.parse(argv);
       if (!command.$fn) {
         return this.printHelpScreen();
       }
 
-      command.$fn({ ...opts, ...args } as any);
+      command.$fn(input);
       return this;
     } catch (e) {
       if (e instanceof LucidCLIError) {

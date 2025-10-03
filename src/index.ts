@@ -1,3 +1,4 @@
+// TODO some tests are failing, figure out why
 import { convert, InferInput, Option, Positional, type Input } from "./input";
 
 export class LucidCLIError extends Error {
@@ -129,7 +130,7 @@ export class Command<T extends Input = Input> {
     ) {
       if (option.$kind === "boolean") {
         opts[key] = "true";
-      } else if (value) {
+      } else if (value !== undefined) {
         opts[key] = value;
       }
     }
@@ -141,7 +142,7 @@ export class Command<T extends Input = Input> {
         const [key, value] = arg.slice(2).split("=");
         const option = getOption(key);
         if (option) {
-          if (!value) setOption(key, option, argv[++i]);
+          if (value === undefined) setOption(key, option, argv[++i]);
           else setOption(key, option, value);
         }
       } else if (arg.startsWith("-")) {
@@ -172,31 +173,24 @@ export class Command<T extends Input = Input> {
       }
     }
 
-    // fill defaults / check required
-    for (const opt in opts) {
-      const mapEntry = map.get(opt);
-      if (!mapEntry) continue;
-
+    // apply arguments and options (with defaults if missing)
+    for (const [mapKey, mapEntry] of map.entries()) {
       const { entry, key } = mapEntry;
-      input[key] = convert(entry.$kind, opts[opt]);
-    }
 
-    for (const i in args) {
-      const mapEntry = map.get(i);
-      if (!mapEntry) continue;
-
-      const { entry, key } = mapEntry;
-      if (!args[i]) {
-        if (entry.$default) {
+      if (typeof mapKey === "string") {
+        // option
+        if (opts[mapKey] !== undefined) {
+          input[key] = convert(entry.$kind, opts[mapKey]);
+        } else {
           input[key] = entry.$default;
-        } else if (entry.$required) {
-          throw new LucidCLIError("missing_required_argument", {
-            command,
-            key,
-          });
         }
-      } else {
-        input[key] = convert(entry.$kind, args[i]);
+      } else if (typeof mapKey === "number") {
+        // positional
+        if (args[mapKey] !== undefined) {
+          input[key] = convert(entry.$kind, args[mapKey]);
+        } else {
+          input[key] = entry.$default;
+        }
       }
     }
 
@@ -210,10 +204,10 @@ export class Command<T extends Input = Input> {
     for (const key in this.$input) {
       const entry = this.$input[key];
       if (entry instanceof Positional) {
-        map.set(i++, { entry, key: key });
+        map.set(i++, { entry, key });
       } else {
         for (const name of entry.$names) {
-          map.set(name, { entry, key: key });
+          map.set(name, { entry, key });
         }
       }
     }
@@ -246,7 +240,7 @@ export class Command<T extends Input = Input> {
         return this.printHelpScreen();
       }
 
-      command.$fn(input);
+      await command.$fn(input);
       return this;
     } catch (e) {
       if (e instanceof LucidCLIError) {

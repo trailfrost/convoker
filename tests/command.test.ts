@@ -1,5 +1,6 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
 import { Command, LucidCLIError, Option, Positional } from "../src";
+
 describe("Command", () => {
   let root: Command;
 

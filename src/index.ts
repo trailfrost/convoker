@@ -10,7 +10,7 @@ export class LucidCLIError extends Error {
       | "missing_required_argument",
     public data: { command: Command<any> } & Record<string, unknown>
   ) {
-    super(`[LUCID_CLI_ERROR] ${type}`);
+    super(`[LUCID_CLI_ERROR] ${type} ${JSON.stringify(data)}`);
   }
 }
 
@@ -80,8 +80,7 @@ export class Command<T extends Input = Input> {
     command.$parent = this;
     const alias = { command, alias: command.$names[0] };
     for (let i = 0; i < command.$names.length; i++) {
-      if (i === 0)
-        this.$children.set(command.$names[i], { command, alias: undefined });
+      if (i === 0) this.$children.set(command.$names[i], { command });
       this.$children.set(command.$names[i], alias);
     }
     return this;
@@ -173,24 +172,36 @@ export class Command<T extends Input = Input> {
       }
     }
 
-    // apply arguments and options (with defaults if missing)
-    for (const [mapKey, mapEntry] of map.entries()) {
-      const { entry, key } = mapEntry;
+    // Apply user values, defaults, or enforce required
+    for (const key in command.$input) {
+      const entry = command.$input[key];
+      let rawValue: string | undefined;
 
-      if (typeof mapKey === "string") {
-        // option
-        if (opts[mapKey] !== undefined) {
-          input[key] = convert(entry.$kind, opts[mapKey]);
-        } else {
-          input[key] = entry.$default;
+      if (entry instanceof Positional) {
+        const index = Object.keys(command.$input)
+          .filter((k) => command.$input[k] instanceof Positional)
+          .indexOf(key);
+        rawValue = args[index];
+      } else {
+        for (const name of entry.$names) {
+          if (opts[name] !== undefined) {
+            rawValue = opts[name];
+            break;
+          }
         }
-      } else if (typeof mapKey === "number") {
-        // positional
-        if (args[mapKey] !== undefined) {
-          input[key] = convert(entry.$kind, args[mapKey]);
-        } else {
-          input[key] = entry.$default;
-        }
+      }
+
+      if (rawValue !== undefined) {
+        input[key] = convert(entry.$kind, rawValue);
+      } else if (entry.$default !== undefined) {
+        input[key] = entry.$default;
+      } else if (entry.$required) {
+        throw new LucidCLIError(
+          entry instanceof Option
+            ? "missing_required_option"
+            : "missing_required_argument",
+          { command, key, entry }
+        );
       }
     }
 

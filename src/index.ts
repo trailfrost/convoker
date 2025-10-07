@@ -1,4 +1,3 @@
-// TODO some tests are failing, figure out why
 import { convert, InferInput, Option, Positional, type Input } from "./input";
 
 export class LucidCLIError extends Error {
@@ -111,7 +110,7 @@ export class Command<T extends Input = Input> {
     const args: string[] = [];
     const opts: Record<string, string> = {};
 
-    const map = command.buildInputMap();
+    let map = command.buildInputMap();
 
     function getOption(key: string) {
       if (!map.has(key)) {
@@ -162,13 +161,13 @@ export class Command<T extends Input = Input> {
         }
       } else {
         // positional
-        if (this.$children.get(arg) && !found) {
-          command = this.$children.get(arg)!.command;
+        if (command.$children.has(arg) && !found) {
+          command = command.$children.get(arg)!.command;
+          map = command.buildInputMap(); // TODO optimize this to not build the entire map again
         } else {
           found = true;
+          args.push(arg);
         }
-
-        if (found) args.push(arg);
       }
     }
 
@@ -248,7 +247,8 @@ export class Command<T extends Input = Input> {
     try {
       const { command, input } = this.parse(argv);
       if (!command.$fn) {
-        return this.printHelpScreen();
+        command.printHelpScreen();
+        return this;
       }
 
       await command.$fn(input);
@@ -258,12 +258,12 @@ export class Command<T extends Input = Input> {
         switch (e.type) {
           case "missing_required_argument":
             console.error(
-              `missing required argument '${(e.data.entry as { names: string[] }).names[0]}'!`
+              `missing required argument '${(e.data.entry as { $names: string[] }).$names[0]}'!`
             );
             break;
           case "missing_required_option":
             console.error(
-              `missing required option '${(e.data.entry as { names: string[] }).names[0]}'!`
+              `missing required option '${(e.data.entry as { $names: string[] }).$names[0]}'!`
             );
             break;
           case "too_many_arguments":

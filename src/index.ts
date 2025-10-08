@@ -110,7 +110,7 @@ export class Command<T extends Input = Input> {
     const args: string[] = [];
     const opts: Record<string, string> = {};
 
-    let map = command.buildInputMap();
+    const map = command.buildInputMap();
 
     function getOption(key: string) {
       if (!map.has(key)) {
@@ -163,7 +163,6 @@ export class Command<T extends Input = Input> {
         // positional
         if (command.$children.has(arg) && !found) {
           command = command.$children.get(arg)!.command;
-          map = command.buildInputMap(); // TODO optimize this to not build the entire map again
         } else {
           found = true;
           args.push(arg);
@@ -207,7 +206,9 @@ export class Command<T extends Input = Input> {
     return { input: input as InferInput<T>, command };
   }
 
-  private buildInputMap(): Map<string | number, MapEntry> {
+  private buildInputMap(
+    ignoreParentMap?: boolean
+  ): Map<string | number, MapEntry> {
     const map = new Map<string | number, MapEntry>();
 
     let i = 0;
@@ -222,10 +223,24 @@ export class Command<T extends Input = Input> {
       }
     }
 
-    const parentMap = this.$parent?.buildInputMap();
-    if (!parentMap) return map;
+    const parentMap = ignoreParentMap ? null : this.$parent?.buildInputMap();
+    const childMaps: Map<string | number, MapEntry>[] = [];
 
-    return new Map([...map, ...parentMap]);
+    for (const child in this.$children) {
+      const entry = this.$children.get(child);
+      if (!entry || entry.alias) continue;
+
+      childMaps.push(entry.command.buildInputMap(true));
+    }
+
+    // Collect all maps into a single array, ignoring undefined ones
+    const mapsToMerge = [parentMap, map, ...childMaps].filter(Boolean) as Map<
+      string | number,
+      MapEntry
+    >[];
+
+    // Merge them all
+    return new Map(mapsToMerge.flatMap((m) => Array.from(m)));
   }
 
   printHelpScreen(): this {

@@ -29,7 +29,7 @@ export type ActionFn<T extends Input> = (
 ) => void | Promise<void>;
 
 interface MapEntry {
-  entry: Option<any, any, any> | Positional<any, any, any>;
+  argument: Option<any, any, any> | Positional<any, any, any>;
   key: string;
 }
 
@@ -113,12 +113,12 @@ export class Command<T extends Input = Input> {
     const map = command.buildInputMap();
 
     function getOption(key: string) {
-      if (!map.has(key)) {
+      const entry = map.get(key);
+      if (!entry) {
         if (command.$allowUnknownOptions) return null;
         throw new LucidCLIError("unknown_option", { command, key });
       }
-      const opt = command.$input[map.get(key)!.key];
-      return opt;
+      return entry.argument as Option<any, any, any>;
     }
 
     function setOption(
@@ -163,6 +163,9 @@ export class Command<T extends Input = Input> {
         // positional
         if (command.$children.has(arg) && !found) {
           command = command.$children.get(arg)!.command;
+          for (const [key, entry] of command.buildInputMap()) {
+            map.set(key, entry);
+          }
         } else {
           found = true;
           args.push(arg);
@@ -213,34 +216,18 @@ export class Command<T extends Input = Input> {
 
     let i = 0;
     for (const key in this.$input) {
-      const entry = this.$input[key];
-      if (entry instanceof Positional) {
-        map.set(i++, { entry, key });
+      const argument = this.$input[key];
+      if (argument instanceof Positional) {
+        map.set(i++, { argument, key });
       } else {
-        for (const name of entry.$names) {
-          map.set(name, { entry, key });
+        for (const name of argument.$names) {
+          map.set(name, { argument, key });
         }
       }
     }
 
-    const parentMap = ignoreParentMap ? null : this.$parent?.buildInputMap();
-    const childMaps: Map<string | number, MapEntry>[] = [];
-
-    for (const child in this.$children) {
-      const entry = this.$children.get(child);
-      if (!entry || entry.alias) continue;
-
-      childMaps.push(entry.command.buildInputMap(true));
-    }
-
-    // Collect all maps into a single array, ignoring undefined ones
-    const mapsToMerge = [parentMap, map, ...childMaps].filter(Boolean) as Map<
-      string | number,
-      MapEntry
-    >[];
-
-    // Merge them all
-    return new Map(mapsToMerge.flatMap((m) => Array.from(m)));
+    if (ignoreParentMap) return map;
+    else return new Map([...(this.$parent?.buildInputMap() ?? []), ...map]);
   }
 
   printHelpScreen(): this {

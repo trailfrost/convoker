@@ -29,8 +29,8 @@ export type ActionFn<T extends Input> = (
 ) => void | Promise<void>;
 
 interface MapEntry {
-  argument: Option<any, any, any> | Positional<any, any, any>;
   key: string;
+  value: Option<any, any, any> | Positional<any, any, any>;
 }
 
 export class Command<T extends Input = Input> {
@@ -118,7 +118,7 @@ export class Command<T extends Input = Input> {
         if (command.$allowUnknownOptions) return null;
         throw new LucidCLIError("unknown_option", { command, key });
       }
-      return entry.argument as Option<any, any, any>;
+      return entry.value as Option<any, any, any>;
     }
 
     function setOption(
@@ -174,15 +174,13 @@ export class Command<T extends Input = Input> {
     }
 
     // Apply user values, defaults, or enforce required
+    let index = 0;
     for (const key in command.$input) {
       const entry = command.$input[key];
       let rawValue: string | undefined;
 
       if (entry instanceof Positional) {
-        const index = Object.keys(command.$input)
-          .filter((k) => command.$input[k] instanceof Positional)
-          .indexOf(key);
-        rawValue = args[index];
+        rawValue = args[index++];
       } else {
         for (const name of entry.$names) {
           if (opts[name] !== undefined) {
@@ -216,12 +214,12 @@ export class Command<T extends Input = Input> {
 
     let i = 0;
     for (const key in this.$input) {
-      const argument = this.$input[key];
-      if (argument instanceof Positional) {
-        map.set(i++, { argument, key });
+      const value = this.$input[key];
+      if (value instanceof Positional) {
+        map.set(i++, { value, key });
       } else {
-        for (const name of argument.$names) {
-          map.set(name, { argument, key });
+        for (const name of value.$names) {
+          map.set(name, { value, key });
         }
       }
     }

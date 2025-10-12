@@ -150,7 +150,6 @@ describe("Nested subcommands", () => {
     });
 
     const { command, input } = root.parse(["sub", "--flag"]);
-    //                             ^
     expect(command).toBe(sub);
     expect(input.flag).toBe(true);
   });

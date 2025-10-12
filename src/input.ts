@@ -1,3 +1,5 @@
+// TODO implement standard schema validation
+
 export interface Input {
   [x: string]: Option<any, any, any> | Positional<any, any, any>;
 }
@@ -55,7 +57,8 @@ export class Option<
 > {
   $kind: TKind;
   $names: string[];
-  $default: TypeOf<TKind> | undefined = undefined;
+  $description: string | undefined;
+  $default: TypeOf<TKind> | undefined;
   $required: TRequired = true as TRequired;
   $list: TList = false as TList;
 
@@ -83,6 +86,11 @@ export class Option<
     this.$default = value;
     return this;
   }
+
+  description(desc: string): this {
+    this.$description = desc;
+    return this;
+  }
 }
 
 export class Positional<
@@ -91,7 +99,8 @@ export class Positional<
   TList extends boolean = false,
 > {
   $kind: TKind;
-  $default: TypeOf<TKind> | undefined = undefined;
+  $default: TypeOf<TKind> | undefined;
+  $description: string | undefined;
   $required: TRequired = true as TRequired;
   $list: TList = false as TList;
 
@@ -116,6 +125,11 @@ export class Positional<
 
   default(value: TypeOf<TKind>): this {
     this.$default = value;
+    return this;
+  }
+
+  description(desc: string): this {
+    this.$description = desc;
     return this;
   }
 }

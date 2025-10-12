@@ -1,4 +1,10 @@
-import { convert, InferInput, Option, Positional, type Input } from "./input";
+import {
+  convert,
+  Option,
+  Positional,
+  type InferInput,
+  type Input,
+} from "./input";
 
 export class LucidCLIError extends Error {
   constructor(
@@ -101,8 +107,7 @@ export class Command<T extends Input = Input> {
   }
 
   parse(argv: string[]): { command: Command; input: InferInput<T> } {
-    // alias to this is necessary to go through the tree
-    // eslint-disable-next-line
+    // eslint-disable-next-line -- alias to this is necessary to go through the tree
     let command: Command<any> = this;
     let found = false;
     const input: Record<string, unknown> = {};
@@ -229,19 +234,118 @@ export class Command<T extends Input = Input> {
   }
 
   printHelpScreen(): this {
-    // TODO
+    const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
+    const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
+    const gray = (s: string) => `\x1b[90m${s}\x1b[0m`;
+
+    const pad = (s: string, len: number) => s.padEnd(len, " ");
+
+    const fullCommandPath = (): string => {
+      const names: string[] = [];
+      // eslint-disable-next-line -- necessary for
+      let cmd: Command<any> | undefined = this;
+      while (cmd) {
+        names.unshift(cmd.$names[0]);
+        cmd = cmd.$parent;
+      }
+      return names.join(" ");
+    };
+
+    console.log();
+    console.log(
+      `${bold("Usage:")} ${cyan(fullCommandPath())} ${gray("[options] [arguments]")}`
+    );
+    console.log();
+
+    if (this.$description) {
+      console.log(`${this.$description}`);
+      console.log();
+    }
+
+    if (this.$version) {
+      console.log(`${bold("Version:")} ${this.$version}`);
+      console.log();
+    }
+
+    // OPTIONS
+    const opts = Object.entries(this.$input)
+      .filter(([, entry]) => entry instanceof Option)
+      .map(([key, entry]) => ({ key, entry: entry as Option<any, any, any> }));
+
+    if (opts.length > 0) {
+      console.log(bold("Options:"));
+      const longest = Math.max(
+        ...opts.map(({ entry }) => entry.$names.join(", ").length)
+      );
+      for (const { entry } of opts) {
+        const names = entry.$names
+          .map((n) => (n.length === 1 ? `-${n}` : `--${n}`))
+          .join(", ");
+        const line = `  ${pad(names, longest + 4)}${entry.$description ?? ""}`;
+        console.log(line);
+      }
+      console.log();
+    }
+
+    // POSITIONALS
+    const positionals = Object.entries(this.$input)
+      .filter(([, entry]) => entry instanceof Positional)
+      .map(([key, entry]) => ({
+        key,
+        entry: entry as Positional<any, any, any>,
+      }));
+
+    if (positionals.length > 0) {
+      console.log(bold("Arguments:"));
+      const longest = Math.max(...positionals.map(({ key }) => key.length));
+      for (const { key, entry } of positionals) {
+        const name = entry.$required ? `<${key}>` : `[${key}]`;
+        const line = `  ${pad(name, longest + 4)}${entry.$description ?? ""}`;
+        console.log(line);
+      }
+      console.log();
+    }
+
+    // SUBCOMMANDS
+    if (this.$children.size > 0) {
+      console.log(bold("Commands:"));
+      const deduped = Array.from(
+        new Map(
+          [...this.$children.values()].map((a) => [
+            a.command.$names[0],
+            a.command,
+          ])
+        ).values()
+      );
+
+      const longest = Math.max(...deduped.map((c) => c.$names[0].length));
+      for (const cmd of deduped) {
+        const line = `  ${pad(cmd.$names[0], longest + 4)}${cmd.$description ?? ""}`;
+        console.log(line);
+      }
+      console.log();
+      console.log(
+        `Run '${cyan(`${fullCommandPath()} <command> --help`)}' for more info on a command.`
+      );
+      console.log();
+    }
+
     return this;
   }
 
   async run(argv?: string[]): Promise<this> {
     if (!argv) {
       argv =
-        // @ts-expect-error `Deno` is a global in Deno
-        typeof Deno === "undefined"
-          ? // @ts-expect-error `process` is a global in Node and Bun
-            (process.argv.slice(2) as string[])
+        // @ts-expect-error `Bun` is a global in Bun
+        typeof Bun !== "undefined"
+          ? // @ts-expect-error `Bun` is a global in Bun
+            (Bun.argv.slice(2) as string[])
           : // @ts-expect-error `Deno` is a global in Deno
-            (Deno.args as string[]);
+            typeof Deno !== "undefined"
+            ? // @ts-expect-error `Deno` is a global in Deno
+              (Deno.args as string[])
+            : // @ts-expect-error `process` is a global in Node
+              (process.argv.slice(2) as string[]);
     }
 
     try {
@@ -282,3 +386,5 @@ export class Command<T extends Input = Input> {
 }
 
 export * from "./input";
+export * from "./colors";
+export * from "./interactive";

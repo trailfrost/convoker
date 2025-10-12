@@ -89,7 +89,7 @@ describe("Type inference", () => {
   });
 
   it("infers Input object correctly", () => {
-    // eslint-disable-next-line
+    // eslint-disable-next-line -- you can't just inline this
     const input = {
       foo: c.option("string", "--foo").optional(),
       bar: c.positional("string").list(),

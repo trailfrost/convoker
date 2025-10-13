@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { Command, LucidCLIError, i } from "../src";
+import { Command, err, i } from "../src";
 
 describe("Command", () => {
   let root: Command;
@@ -83,19 +83,23 @@ describe("Command", () => {
     root.input({
       port: i.option("number", "-p").required(),
     });
-    expect(() => root.parse([])).toThrow(LucidCLIError);
+    expect(root.parse([]).errors[0]).toBeInstanceOf(err.MissingRequiredOption);
   });
 
   test("parse() throws on missing required positional", () => {
     root.input({
       file: i.positional("string").required(),
     });
-    expect(() => root.parse([])).toThrow(LucidCLIError);
+    expect(root.parse([]).errors[0]).toBeInstanceOf(
+      err.MissingRequiredArgument
+    );
   });
 
   test("parse() throws on unknown option if not allowed", () => {
     root.input({});
-    expect(() => root.parse(["--bad"])).toThrow(LucidCLIError);
+    expect(root.parse(["--bad"]).errors[0]).toBeInstanceOf(
+      err.UnknownOptionError
+    );
   });
 
   test("parse() ignores unknown option if allowed", () => {
@@ -191,6 +195,8 @@ describe("Nested subcommands", () => {
       required: i.option("string", "-r").required(),
     });
 
-    expect(() => root.parse(["sub"])).toThrow(LucidCLIError);
+    expect(root.parse(["sub"]).errors[0]).toBeInstanceOf(
+      err.MissingRequiredOption
+    );
   });
 });

@@ -1,7 +1,7 @@
 import {
+  LucidCLIError,
   MissingRequiredArgument,
   MissingRequiredOption,
-  TooManyArguments,
   UnknownOptionError,
 } from "./errors";
 import {
@@ -17,10 +17,10 @@ export interface CommandAlias<T extends Input = Input> {
   alias?: string;
 }
 
-export interface ParseReturn {
-  command: Command<any>;
-  opts: Record<string, unknown>;
-  args: Record<string, unknown>;
+export interface ParseResult<T extends Input> {
+  command: Command<T>;
+  input: InferInput<T>;
+  errors: LucidCLIError[];
 }
 
 export type ActionFn<T extends Input> = (
@@ -99,7 +99,7 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
-  parse(argv: string[]): { command: Command; input: InferInput<T> } {
+  parse(argv: string[]): ParseResult<T> {
     // eslint-disable-next-line -- alias to this is necessary to go through the tree
     let command: Command<any> = this;
     let found = false;
@@ -108,13 +108,16 @@ export class Command<T extends Input = Input> {
     const args: string[] = [];
     const opts: Record<string, string> = {};
 
+    const errors: LucidCLIError[] = [];
     const map = command.buildInputMap();
+    // TODO right now, children's options are not included until they are encountered, causing a false `UnknownOptionError` if you pass a child's option before it's reached.
 
     function getOption(key: string) {
       const entry = map.get(key);
       if (!entry) {
-        if (command.$allowUnknownOptions) return null;
-        throw new UnknownOptionError(command, key);
+        if (!command.$allowUnknownOptions)
+          errors.push(new UnknownOptionError(command, key));
+        return null;
       }
       return entry.value as Option<any, any, any>;
     }
@@ -193,13 +196,15 @@ export class Command<T extends Input = Input> {
       } else if (entry.$default !== undefined) {
         input[key] = entry.$default;
       } else if (entry.$required) {
-        if (entry instanceof Option)
-          throw new MissingRequiredOption(command, key, entry);
-        else throw new MissingRequiredArgument(command, key, entry);
+        if (entry instanceof Option) {
+          errors.push(new MissingRequiredOption(command, key, entry));
+        } else {
+          errors.push(new MissingRequiredArgument(command, key, entry));
+        }
       }
     }
 
-    return { input: input as InferInput<T>, command };
+    return { input: input as InferInput<T>, command, errors };
   }
 
   private buildInputMap(
@@ -338,31 +343,17 @@ export class Command<T extends Input = Input> {
               (process.argv.slice(2) as string[]);
     }
 
-    try {
-      const { command, input } = this.parse(argv);
-      if (!command.$fn) {
-        command.printHelpScreen();
-        return this;
+    const { errors, command, input } = this.parse(argv);
+    if (errors.length > 0) {
+      for (const error of errors) {
+        error.print();
       }
-
+      command.printHelpScreen();
+    } else if (!command.$fn) {
+      command.printHelpScreen();
+    } else {
       await command.$fn(input);
-      return this;
-    } catch (e) {
-      if (e instanceof MissingRequiredArgument) {
-        console.error(`missing required argument: ${e.key}.`);
-        return this.printHelpScreen();
-      } else if (e instanceof MissingRequiredOption) {
-        console.error(`missing required option: ${e.key};`);
-        return this.printHelpScreen();
-      } else if (e instanceof TooManyArguments) {
-        console.error("too many arguments.");
-        return this.printHelpScreen();
-      } else if (e instanceof UnknownOptionError) {
-        console.error(`unknown option: ${e.key}.`);
-        return this.printHelpScreen();
-      }
     }
-
     return this;
   }
 }

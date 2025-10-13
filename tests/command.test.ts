@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { Command, LucidCLIError, Option, Positional } from "../src";
+import { Command, LucidCLIError, i } from "../src";
 
 describe("Command", () => {
   let root: Command;
@@ -32,7 +32,7 @@ describe("Command", () => {
 
   test("parse() parses boolean option", () => {
     root.input({
-      v: new Option("boolean", ["-v", "--verbose"]),
+      v: i.option("boolean", "-v", "--verbose"),
     });
     const { input } = root.parse(["-v"]);
     expect(input.v).toBe(true);
@@ -40,7 +40,7 @@ describe("Command", () => {
 
   test("parse() parses string option with value", () => {
     root.input({
-      o: new Option("string", ["-o", "--output"]),
+      o: i.option("string", "-o", "--output"),
     });
     const { input } = root.parse(["--output", "file.txt"]);
     expect(input.o).toBe("file.txt");
@@ -48,7 +48,7 @@ describe("Command", () => {
 
   test("parse() supports --key=value syntax", () => {
     root.input({
-      o: new Option("string", ["-o", "--output"]),
+      o: i.option("string", "-o", "--output"),
     });
     const { input } = root.parse(["--output=file.txt"]);
     expect(input.o).toBe("file.txt");
@@ -56,8 +56,8 @@ describe("Command", () => {
 
   test("parse() supports short option chaining", () => {
     root.input({
-      a: new Option("boolean", ["-a"]),
-      b: new Option("boolean", ["-b"]),
+      a: i.option("boolean", "-a"),
+      b: i.option("boolean", "-b"),
     });
     const { input } = root.parse(["-ab"]);
     expect(input).toEqual({ a: true, b: true });
@@ -65,7 +65,7 @@ describe("Command", () => {
 
   test("parse() parses positional args", () => {
     root.input({
-      file: new Positional("string").required(),
+      file: i.positional("string").required(),
     });
     const { input } = root.parse(["main.ts"]);
     expect(input.file).toBe("main.ts");
@@ -73,7 +73,7 @@ describe("Command", () => {
 
   test("parse() fills defaults", () => {
     root.input({
-      port: new Option("number", ["-p"]).default(3000),
+      port: i.option("number", "-p").default(3000),
     });
     const { input } = root.parse([]);
     expect(input.port).toBe(3000);
@@ -81,14 +81,14 @@ describe("Command", () => {
 
   test("parse() throws on missing required option", () => {
     root.input({
-      port: new Option("number", ["-p"]).required(),
+      port: i.option("number", "-p").required(),
     });
     expect(() => root.parse([])).toThrow(LucidCLIError);
   });
 
   test("parse() throws on missing required positional", () => {
     root.input({
-      file: new Positional("string").required(),
+      file: i.positional("string").required(),
     });
     expect(() => root.parse([])).toThrow(LucidCLIError);
   });
@@ -108,7 +108,7 @@ describe("Command", () => {
   test("run() executes action", async () => {
     const fn = vi.fn();
     root.input({
-      name: new Positional("string").required(),
+      name: i.positional("string").required(),
     });
     root.action(fn);
     await root.run(["Alice"]);
@@ -123,7 +123,7 @@ describe("Command", () => {
 
   test("run() catches CLI errors and prints message", async () => {
     root.input({
-      required: new Option("string", ["-r"]).required(),
+      required: i.option("string", "-r").required(),
     });
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const helpSpy = vi.spyOn(root, "printHelpScreen");
@@ -146,7 +146,7 @@ describe("Nested subcommands", () => {
   test("parse() navigates into subcommand", () => {
     const sub = root.subCommand("sub");
     sub.input({
-      flag: new Option("boolean", ["-f", "--flag"]),
+      flag: i.option("boolean", "-f", "--flag"),
     });
 
     const { command, input } = root.parse(["sub", "--flag"]);
@@ -157,7 +157,7 @@ describe("Nested subcommands", () => {
   test("parse() handles positional in subcommand", () => {
     const sub = root.subCommand("sub");
     sub.input({
-      file: new Positional("string").required(),
+      file: i.argument("string").required(),
     });
 
     const { command, input } = root.parse(["sub", "main.ts"]);
@@ -169,7 +169,7 @@ describe("Nested subcommands", () => {
     const fn = vi.fn();
     const sub = root.subCommand("sub");
     sub.input({
-      name: new Positional("string").required(),
+      name: i.positional("string").required(),
     });
     sub.action(fn);
 
@@ -188,7 +188,7 @@ describe("Nested subcommands", () => {
   test("throws if subcommand is missing required option", () => {
     const sub = root.subCommand("sub");
     sub.input({
-      required: new Option("string", ["-r"]).required(),
+      required: i.option("string", "-r").required(),
     });
 
     expect(() => root.parse(["sub"])).toThrow(LucidCLIError);

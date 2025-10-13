@@ -134,9 +134,14 @@ export class Positional<
   }
 }
 
-export const c = {
-  option: <T extends Kind>(kind: T, ...names: string[]) =>
-    new Option(kind, names),
-  positional: <T extends Kind>(kind: T) => new Positional(kind),
-  argument: <T extends Kind>(kind: T) => new Positional(kind),
-};
+export function option<T extends Kind>(kind: T, ...names: string[]): Option<T> {
+  return new Option(kind, names);
+}
+
+export function positional<T extends Kind>(kind: T): Positional<T> {
+  return new Positional(kind);
+}
+
+export function argument<T extends Kind>(kind: T): Positional<T> {
+  return new Positional(kind);
+}

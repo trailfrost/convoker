@@ -149,11 +149,18 @@ describe("Nested subcommands", () => {
 
   test("parse() navigates into subcommand", () => {
     const sub = root.subCommand("sub");
+
+    const { command } = root.parse(["sub"]);
+    expect(command).toBe(sub);
+  });
+
+  test("parse() handles options in subcommand", () => {
+    const sub = root.subCommand("sub");
     sub.input({
       flag: i.option("boolean", "-f", "--flag"),
     });
 
-    const { command, input } = root.parse(["sub", "--flag"]);
+    const { command, input } = root.parse(["--flag", "sub"]);
     expect(command).toBe(sub);
     expect(input.flag).toBe(true);
   });
@@ -161,12 +168,34 @@ describe("Nested subcommands", () => {
   test("parse() handles positional in subcommand", () => {
     const sub = root.subCommand("sub");
     sub.input({
-      file: i.argument("string").required(),
+      file: i.positional("string").required(),
     });
 
     const { command, input } = root.parse(["sub", "main.ts"]);
     expect(command).toBe(sub);
     expect(input.file).toBe("main.ts");
+  });
+
+  test("parse() throws if subcommand is missing required option", () => {
+    const sub = root.subCommand("sub");
+    sub.input({
+      required: i.option("string", "-r").required(),
+    });
+
+    expect(root.parse(["sub"]).errors[0]).toBeInstanceOf(
+      err.MissingRequiredOption
+    );
+  });
+
+  test("parse() throws if subcommand is missing required positional", () => {
+    const sub = root.subCommand("sub");
+    sub.input({
+      required: i.positional("string").required(),
+    });
+
+    expect(root.parse(["sub"]).errors[0]).toBeInstanceOf(
+      err.MissingRequiredArgument
+    );
   });
 
   test("run() executes nested subcommand action", async () => {
@@ -187,16 +216,5 @@ describe("Nested subcommands", () => {
 
     await root.run(["sub"]);
     expect(helpSpy).toHaveBeenCalled();
-  });
-
-  test("throws if subcommand is missing required option", () => {
-    const sub = root.subCommand("sub");
-    sub.input({
-      required: i.option("string", "-r").required(),
-    });
-
-    expect(root.parse(["sub"]).errors[0]).toBeInstanceOf(
-      err.MissingRequiredOption
-    );
   });
 });

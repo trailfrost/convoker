@@ -141,7 +141,12 @@ export class Command<T extends Input = Input> {
         const [key, value] = arg.slice(2).split("=");
         const option = getOption(key);
         if (option) {
-          if (value === undefined) setOption(key, option, argv[++i]);
+          if (value === undefined)
+            setOption(
+              key,
+              option,
+              option.$kind === "boolean" ? undefined : argv[++i]
+            );
           else setOption(key, option, value);
         }
       } else if (arg.startsWith("-")) {
@@ -164,9 +169,6 @@ export class Command<T extends Input = Input> {
         // positional
         if (command.$children.has(arg) && !found) {
           command = command.$children.get(arg)!.command;
-          for (const [key, entry] of command.buildInputMap()) {
-            map.set(key, entry);
-          }
         } else {
           found = true;
           args.push(arg);
@@ -224,8 +226,19 @@ export class Command<T extends Input = Input> {
       }
     }
 
-    if (ignoreParentMap) return map;
-    else return new Map([...(this.$parent?.buildInputMap() ?? []), ...map]);
+    if (!ignoreParentMap) {
+      for (const [key, entry] of this.$parent?.buildInputMap() ?? []) {
+        map.set(key, entry);
+      }
+    }
+
+    for (const [, { command }] of this.$children) {
+      for (const [key, entry] of command.buildInputMap(true)) {
+        map.set(key, entry);
+      }
+    }
+
+    return map;
   }
 
   printHelpScreen(): this {

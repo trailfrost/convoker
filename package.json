@@ -17,9 +17,9 @@
       "default": "./dist/colors.js",
       "types": "./dist/colors.d.ts"
     },
-    "./interactive": {
-      "default": "./dist/interactive.js",
-      "types": "./dist/interactive.d.ts"
+    "./interact": {
+      "default": "./dist/interact.js",
+      "types": "./dist/interact.d.ts"
     },
     "./errors": {
       "default": "./dist/errors.js",

@@ -1,3 +1,4 @@
+import { gray, cyan, bold } from "./colors";
 import {
   LucidCLIError,
   MissingRequiredArgument,
@@ -242,10 +243,6 @@ export class Command<T extends Input = Input> {
   }
 
   printHelpScreen(): this {
-    const bold = (s: string) => `\x1b[1m${s}\x1b[0m`;
-    const cyan = (s: string) => `\x1b[36m${s}\x1b[0m`;
-    const gray = (s: string) => `\x1b[90m${s}\x1b[0m`;
-
     const pad = (s: string, len: number) => s.padEnd(len, " ");
 
     const fullCommandPath = (): string => {

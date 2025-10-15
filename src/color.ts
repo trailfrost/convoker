@@ -68,7 +68,7 @@ export function createAnsiColor(
   const openCode = `\u001b[${open}m`;
   const closeCode = `\u001b[${close}m`;
 
-  if (!supportsColor) return (input) => String(input);
+  if (!supportsColor) return (input) => input + "";
 
   return (input) => {
     if (!input) return openCode + closeCode;

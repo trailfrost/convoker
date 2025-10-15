@@ -22,9 +22,16 @@ export interface ParseResult<T extends Input> {
   command: Command<T>;
   input: InferInput<T>;
   errors: LucidCLIError[];
+  isVersion: boolean;
+  isHelp: boolean;
 }
 
 export type ActionFn<T extends Input> = (
+  input: InferInput<T>
+) => void | Promise<void>;
+
+export type HelpFn<T extends Input> = (
+  command: Command<T>,
   input: InferInput<T>
 ) => void | Promise<void>;
 
@@ -43,6 +50,7 @@ export class Command<T extends Input = Input> {
 
   $input: T = {} as T;
   $fn: ActionFn<T> | undefined = undefined;
+  $helpFn: HelpFn<T> | undefined = undefined;
 
   constructor(names: string | string[], desc?: string, version?: string) {
     this.$names = Array.isArray(names) ? names : [names];
@@ -112,10 +120,10 @@ export class Command<T extends Input = Input> {
     const errors: LucidCLIError[] = [];
     const map = command.buildInputMap();
 
-    function getOption(key: string) {
+    function getOption(key: string, isSpecial?: boolean) {
       const entry = map.get(key);
       if (!entry) {
-        if (!command.$allowUnknownOptions)
+        if (!command.$allowUnknownOptions && !isSpecial)
           errors.push(new UnknownOptionError(command, key));
         return null;
       }
@@ -134,12 +142,24 @@ export class Command<T extends Input = Input> {
       }
     }
 
+    let isVersion = false;
+    let isHelp = false;
     for (let i = 0; i < argv.length; i++) {
       const arg = argv[i];
       if (arg.startsWith("--")) {
         // --long[=value] or --long [value]
         const [key, value] = arg.slice(2).split("=");
-        const option = getOption(key);
+
+        let isSpecial = false;
+        if (key === "help") {
+          isHelp = true;
+          isSpecial = true;
+        } else if (key === "version") {
+          isVersion = true;
+          isSpecial = true;
+        }
+
+        const option = getOption(key, isSpecial);
         if (option) {
           if (value === undefined)
             setOption(
@@ -156,7 +176,16 @@ export class Command<T extends Input = Input> {
         let usedValue: string | undefined = value;
 
         for (const char of chars) {
-          const option = getOption(char);
+          let isSpecial = false;
+          if (char === "h") {
+            isHelp = true;
+            isSpecial = true;
+          } else if (char === "V") {
+            isVersion = true;
+            isSpecial = true;
+          }
+
+          const option = getOption(char, isSpecial);
           if (!option) continue;
 
           if (option.$kind !== "boolean" && usedValue === undefined) {
@@ -206,7 +235,13 @@ export class Command<T extends Input = Input> {
       }
     }
 
-    return { input: input as InferInput<T>, command, errors };
+    return {
+      input: input as InferInput<T>,
+      command,
+      errors,
+      isVersion,
+      isHelp,
+    };
   }
 
   private buildInputMap(
@@ -241,22 +276,37 @@ export class Command<T extends Input = Input> {
     return map;
   }
 
-  printHelpScreen(): this {
+  fullCommandPath(): string {
+    const names: string[] = [];
+    // eslint-disable-next-line -- necessary for traversing up the tree
+    let cmd: Command<any> | undefined = this;
+    while (cmd) {
+      names.unshift(cmd.$names[0]);
+      cmd = cmd.$parent;
+    }
+    return names.join(" ");
+  }
+
+  async help(input?: InferInput<T>): Promise<this> {
+    // eslint-disable-next-line -- necessary for traversing up the tree
+    let command: Command<any> = this;
+    while (!command.$helpFn && command.$parent) {
+      command = command.$parent;
+    }
+
+    if (command.$helpFn) {
+      await command.$helpFn(command, input ?? ({} as InferInput<T>));
+      return this;
+    } else {
+      return this.printHelpScreen();
+    }
+  }
+
+  private printHelpScreen(): this {
     const pad = (s: string, len: number) => s.padEnd(len, " ");
 
-    const fullCommandPath = (): string => {
-      const names: string[] = [];
-      // eslint-disable-next-line -- necessary for
-      let cmd: Command<any> | undefined = this;
-      while (cmd) {
-        names.unshift(cmd.$names[0]);
-        cmd = cmd.$parent;
-      }
-      return names.join(" ");
-    };
-
     console.log(
-      `${bold("usage:")} ${cyan(fullCommandPath())} ${gray("[options] [arguments]")}`
+      `${bold("usage:")} ${cyan(this.fullCommandPath())} ${gray("[options] [arguments]")}`
     );
     if (this.$description) {
       console.log(`${this.$description}`);
@@ -322,7 +372,7 @@ export class Command<T extends Input = Input> {
       }
       console.log();
       console.log(
-        `run '${cyan(`${fullCommandPath()} <command> --help`)}' for more info on a command.`
+        `run '${cyan(`${this.fullCommandPath()} <command> --help`)}' for more info on a command.`
       );
     }
 
@@ -344,16 +394,26 @@ export class Command<T extends Input = Input> {
               (process.argv.slice(2) as string[]);
     }
 
-    const { errors, command, input } = this.parse(argv);
-    if (errors.length > 0) {
-      for (const error of errors) {
+    const result = this.parse(argv);
+    if (result.isHelp) {
+      result.command.printHelpScreen();
+      return this;
+    } else if (result.isVersion) {
+      console.log(
+        `${this.fullCommandPath()} version ${result.command.$version}`
+      );
+      return this;
+    }
+
+    if (result.errors.length > 0) {
+      for (const error of result.errors) {
         error.print();
       }
-      command.printHelpScreen();
-    } else if (!command.$fn) {
-      command.printHelpScreen();
+      await result.command.help(result.input);
+    } else if (!result.command.$fn) {
+      await result.command.help(result.input);
     } else {
-      await command.$fn(input);
+      await result.command.$fn(result.input);
     }
     return this;
   }

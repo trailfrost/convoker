@@ -1,5 +1,5 @@
 export * from "./command";
-export * as error from "./errors";
+export * as error from "./error";
 export * as i from "./input";
-export * as c from "./colors";
-export * as a from "./interact";
+export * as color from "./color";
+export * as prompt from "./prompt";

@@ -31,7 +31,7 @@ async function loadModuleWithEnv({
     vi.stubGlobal("Deno", { noColor: denoNoColor });
   }
 
-  const mod = await import("../src/colors");
+  const mod = await import("../src/color");
   return mod;
 }
 

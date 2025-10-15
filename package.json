@@ -13,17 +13,17 @@
       "default": "./dist/input.js",
       "types": "./dist/types.d.ts"
     },
-    "./colors": {
-      "default": "./dist/colors.js",
-      "types": "./dist/colors.d.ts"
+    "./color": {
+      "default": "./dist/color.js",
+      "types": "./dist/color.d.ts"
     },
-    "./interact": {
-      "default": "./dist/interact.js",
-      "types": "./dist/interact.d.ts"
+    "./prompt": {
+      "default": "./dist/prompt.js",
+      "types": "./dist/prompt.d.ts"
     },
-    "./errors": {
-      "default": "./dist/errors.js",
-      "types": "./dist/errors.d.ts"
+    "./error": {
+      "default": "./dist/error.js",
+      "types": "./dist/error.d.ts"
     }
   },
   "type": "module",

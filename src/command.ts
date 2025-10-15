@@ -1,10 +1,10 @@
-import { gray, cyan, bold } from "./colors";
+import { gray, cyan, bold } from "./color";
 import {
   LucidCLIError,
   MissingRequiredArgument,
   MissingRequiredOption,
   UnknownOptionError,
-} from "./errors";
+} from "./error";
 import {
   convert,
   Option,
@@ -111,7 +111,6 @@ export class Command<T extends Input = Input> {
 
     const errors: LucidCLIError[] = [];
     const map = command.buildInputMap();
-    // TODO right now, children's options are not included until they are encountered, causing a false `UnknownOptionError` if you pass a child's option before it's reached.
 
     function getOption(key: string) {
       const entry = map.get(key);
@@ -256,20 +255,15 @@ export class Command<T extends Input = Input> {
       return names.join(" ");
     };
 
-    console.log();
     console.log(
-      `${bold("Usage:")} ${cyan(fullCommandPath())} ${gray("[options] [arguments]")}`
+      `${bold("usage:")} ${cyan(fullCommandPath())} ${gray("[options] [arguments]")}`
     );
-    console.log();
-
     if (this.$description) {
       console.log(`${this.$description}`);
-      console.log();
     }
 
     if (this.$version) {
-      console.log(`${bold("Version:")} ${this.$version}`);
-      console.log();
+      console.log(`${bold("version")} ${this.$version}`);
     }
 
     // OPTIONS
@@ -278,7 +272,7 @@ export class Command<T extends Input = Input> {
       .map(([key, entry]) => ({ key, entry: entry as Option<any, any, any> }));
 
     if (opts.length > 0) {
-      console.log(bold("Options:"));
+      console.log(bold("options:"));
       const longest = Math.max(
         ...opts.map(({ entry }) => entry.$names.join(", ").length)
       );
@@ -286,10 +280,9 @@ export class Command<T extends Input = Input> {
         const names = entry.$names
           .map((n) => (n.length === 1 ? `-${n}` : `--${n}`))
           .join(", ");
-        const line = `  ${pad(names, longest + 4)}${entry.$description ?? ""}`;
+        const line = `  ${cyan(pad(names, longest + 4))}${gray(entry.$description ?? "")}`;
         console.log(line);
       }
-      console.log();
     }
 
     // POSITIONALS
@@ -301,19 +294,18 @@ export class Command<T extends Input = Input> {
       }));
 
     if (positionals.length > 0) {
-      console.log(bold("Arguments:"));
+      console.log(bold("arguments:"));
       const longest = Math.max(...positionals.map(({ key }) => key.length));
       for (const { key, entry } of positionals) {
         const name = entry.$required ? `<${key}>` : `[${key}]`;
-        const line = `  ${pad(name, longest + 4)}${entry.$description ?? ""}`;
+        const line = `  ${cyan(pad(name, longest + 4))}${gray(entry.$description ?? "")}`;
         console.log(line);
       }
-      console.log();
     }
 
     // SUBCOMMANDS
     if (this.$children.size > 0) {
-      console.log(bold("Commands:"));
+      console.log(bold("sub commands:"));
       const deduped = Array.from(
         new Map(
           [...this.$children.values()].map((a) => [
@@ -325,14 +317,13 @@ export class Command<T extends Input = Input> {
 
       const longest = Math.max(...deduped.map((c) => c.$names[0].length));
       for (const cmd of deduped) {
-        const line = `  ${pad(cmd.$names[0], longest + 4)}${cmd.$description ?? ""}`;
+        const line = `  ${cyan(pad(cmd.$names[0], longest + 4))}${gray(cmd.$description) ?? ""}`;
         console.log(line);
       }
       console.log();
       console.log(
-        `Run '${cyan(`${fullCommandPath()} <command> --help`)}' for more info on a command.`
+        `run '${cyan(`${fullCommandPath()} <command> --help`)}' for more info on a command.`
       );
-      console.log();
     }
 
     return this;

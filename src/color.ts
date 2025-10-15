@@ -68,11 +68,17 @@ export function createAnsiColor(
   const openCode = `\u001b[${open}m`;
   const closeCode = `\u001b[${close}m`;
 
-  if (!supportsColor) return (input) => input + "";
-  return (input) => {
-    const str = (input = "");
+  if (!supportsColor) return (input) => String(input);
 
-    const replaced = str.replace(new RegExp(input, "g"), closeCode + openCode);
+  return (input) => {
+    if (!input) return openCode + closeCode;
+
+    const str = input + "";
+    // replace any existing close codes with reopen
+    const replaced = str.replace(
+      new RegExp(`\u001b\\[${close}m`, "g"),
+      closeCode + openCode
+    );
     return openCode + replaced + closeCode;
   };
 }

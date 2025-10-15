@@ -16,8 +16,9 @@ describe("Command", () => {
   });
 
   test("adds and resolves subcommands", () => {
-    const sub = new Command("sub");
+    const sub = new Command("sub").description("test");
     root.add(sub);
+    root.printHelpScreen();
     expect(root.$children.get("sub")?.command).toBe(sub);
     expect(sub.$parent).toBe(root);
   });
@@ -129,7 +130,7 @@ describe("Command", () => {
 
   test("run() catches CLI errors and prints message", async () => {
     root.input({
-      required: i.option("string", "-r").required(),
+      required: i.option("string", "-r").required().description("Example"),
     });
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
     const helpSpy = vi.spyOn(root, "printHelpScreen");

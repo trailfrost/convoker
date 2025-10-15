@@ -18,7 +18,7 @@ describe("Command", () => {
   test("adds and resolves subcommands", () => {
     const sub = new Command("sub").description("test");
     root.add(sub);
-    root.printHelpScreen();
+    root.runHelp();
     expect(root.$children.get("sub")?.command).toBe(sub);
     expect(sub.$parent).toBe(root);
   });
@@ -112,6 +112,14 @@ describe("Command", () => {
     expect(result.input).toEqual({});
   });
 
+  test("run() executes help", () => {
+    const fn = vi.fn();
+    root.help(fn);
+    root.run();
+
+    expect(fn).toHaveBeenCalled();
+  });
+
   test("run() executes action", async () => {
     const fn = vi.fn();
     root.input({
@@ -123,7 +131,7 @@ describe("Command", () => {
   });
 
   test("run() prints help screen if no action is set", async () => {
-    const spy = vi.spyOn(root, "printHelpScreen");
+    const spy = vi.spyOn(root, "runHelp");
     await root.run([]);
     expect(spy).toHaveBeenCalled();
   });
@@ -133,7 +141,7 @@ describe("Command", () => {
       required: i.option("string", "-r").required().description("Example"),
     });
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const helpSpy = vi.spyOn(root, "printHelpScreen");
+    const helpSpy = vi.spyOn(root, "runHelp");
     await root.run([]);
     expect(errorSpy).toHaveBeenCalledWith(
       expect.stringContaining("missing required option")
@@ -215,7 +223,7 @@ describe("Nested subcommands", () => {
 
   test("run() prints help screen if subcommand has no action", async () => {
     const sub = root.subCommand("sub");
-    const helpSpy = vi.spyOn(sub, "printHelpScreen");
+    const helpSpy = vi.spyOn(sub, "runHelp");
 
     await root.run(["sub"]);
     expect(helpSpy).toHaveBeenCalled();

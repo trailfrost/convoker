@@ -83,6 +83,11 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
+  help(fn: HelpFn<T>): this {
+    this.$helpFn = fn;
+    return this;
+  }
+
   add(command: Command<any>): this {
     command.$parent = this;
     const alias = { command, alias: command.$names[0] };
@@ -287,21 +292,6 @@ export class Command<T extends Input = Input> {
     return names.join(" ");
   }
 
-  async help(input?: InferInput<T>): Promise<this> {
-    // eslint-disable-next-line -- necessary for traversing up the tree
-    let command: Command<any> = this;
-    while (!command.$helpFn && command.$parent) {
-      command = command.$parent;
-    }
-
-    if (command.$helpFn) {
-      await command.$helpFn(command, input ?? ({} as InferInput<T>));
-      return this;
-    } else {
-      return this.printHelpScreen();
-    }
-  }
-
   private printHelpScreen(): this {
     const pad = (s: string, len: number) => s.padEnd(len, " ");
 
@@ -379,6 +369,21 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
+  async runHelp(input?: InferInput<T>): Promise<this> {
+    // eslint-disable-next-line -- necessary for traversing up the tree
+    let command: Command<any> = this;
+    while (!command.$helpFn && command.$parent) {
+      command = command.$parent;
+    }
+
+    if (command.$helpFn) {
+      await command.$helpFn(command, input ?? ({} as InferInput<T>));
+      return this;
+    } else {
+      return this.printHelpScreen();
+    }
+  }
+
   async run(argv?: string[]): Promise<this> {
     if (!argv) {
       argv =
@@ -409,9 +414,9 @@ export class Command<T extends Input = Input> {
       for (const error of result.errors) {
         error.print();
       }
-      await result.command.help(result.input);
+      await result.command.runHelp(result.input);
     } else if (!result.command.$fn) {
-      await result.command.help(result.input);
+      await result.command.runHelp(result.input);
     } else {
       await result.command.$fn(result.input);
     }

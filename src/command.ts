@@ -113,7 +113,7 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
-  parse(argv: string[]): ParseResult<T> {
+  async parse(argv: string[]): Promise<ParseResult<T>> {
     // eslint-disable-next-line -- alias to this is necessary to go through the tree
     let command: Command<any> = this;
     let found = false;
@@ -228,7 +228,7 @@ export class Command<T extends Input = Input> {
       }
 
       if (rawValue !== undefined) {
-        input[key] = convert(entry.$kind, rawValue);
+        input[key] = await convert(entry.$kind, rawValue);
       } else if (entry.$default !== undefined) {
         input[key] = entry.$default;
       } else if (entry.$required) {
@@ -399,7 +399,7 @@ export class Command<T extends Input = Input> {
               (process.argv.slice(2) as string[]);
     }
 
-    const result = this.parse(argv);
+    const result = await this.parse(argv);
     if (result.isHelp) {
       result.command.printHelpScreen();
       return this;

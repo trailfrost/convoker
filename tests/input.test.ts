@@ -1,51 +1,52 @@
-import { describe, it, expect } from "vitest";
+import * as v from "valibot";
+import { describe, test, expect } from "vitest";
 import { i } from "../src";
 
 // --- Runtime tests ---
 describe("Option", () => {
-  it("strips leading dashes from names", () => {
+  test("strips leading dashes from names", () => {
     const opt = new i.Option("string", ["--foo", "-f", "bar"]);
     expect(opt.$names).toEqual(["foo", "f", "bar"]);
   });
 
-  it("marks as list when .list() is called", () => {
+  test("marks as list when .list() is called", () => {
     const opt = i.option("string", "--foo").list();
     expect(opt.$list).toBe(true);
   });
 
-  it("marks as optional when .optional() is called", () => {
+  test("marks as optional when .optional() is called", () => {
     const opt = i.option("string", "--foo").optional();
     expect(opt.$required).toBe(false);
   });
 
-  it("marks as required when .required() is called", () => {
+  test("marks as required when .required() is called", () => {
     const opt = i.option("string", "--foo").optional().required();
     expect(opt.$required).toBe(true);
   });
 
-  it("assigns a default value when .default() is called", () => {
+  test("assigns a default value when .default() is called", () => {
     const opt = i.option("string", "--foo").default("bar");
     expect(opt.$default).toBe("bar");
   });
 });
 
 describe("Positional", () => {
-  it("marks as list when .list() is called", () => {
+  test("marks as list when .list() is called", () => {
     const pos = i.positional("string").list();
     expect(pos.$list).toBe(true);
   });
 
-  it("marks as optional when .optional() is called", () => {
+  test("marks as optional when .optional() is called", () => {
     const pos = i.positional("string").optional();
     expect(pos.$required).toBe(false);
   });
 
-  it("marks as required when .required() is called", () => {
+  test("marks as required when .required() is called", () => {
     const pos = i.positional("string").optional().required();
     expect(pos.$required).toBe(true);
   });
 
-  it("assigns a default value when .default() is called", () => {
+  test("assigns a default value when .default() is called", () => {
     const pos = i.positional("string").default("foo");
     expect(pos.$default).toBe("foo");
   });
@@ -53,7 +54,7 @@ describe("Positional", () => {
 
 // --- Type-level tests ---
 describe("Type inference", () => {
-  it("infers Option types correctly", () => {
+  test("infers Option types correctly", () => {
     type A = i.InferEntry<i.Option<"string", true, false>>;
     type B = i.InferEntry<i.Option<"number", false, false>>;
     type C = i.InferEntry<i.Option<"boolean", true, true>>;
@@ -68,7 +69,7 @@ describe("Type inference", () => {
     expect(c).toEqual([true, false]);
   });
 
-  it("infers Positional types correctly", () => {
+  test("infers Positional types correctly", () => {
     type A = i.InferEntry<i.Positional<"string", true, false>>;
     type B = i.InferEntry<i.Positional<"number", false, false>>;
     type C = i.InferEntry<i.Positional<"boolean", true, true>>;
@@ -82,7 +83,16 @@ describe("Type inference", () => {
     expect(c).toEqual([true]);
   });
 
-  it("infers Input object correctly", () => {
+  test("infers Valibot types correctly", () => {
+    // eslint-disable-next-line -- you can't inline this
+    const valibotString = v.string();
+    type A = i.InferEntry<i.Positional<typeof valibotString, true, false>>;
+
+    const a: A = "foo";
+    expect(a).toBe("foo");
+  });
+
+  test("infers Input object correctly", () => {
     // eslint-disable-next-line -- you can't just inline this
     const input = {
       foo: i.option("string", "--foo").optional(),

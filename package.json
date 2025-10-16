@@ -47,7 +47,7 @@
   ],
   "author": "trailfrost",
   "license": "MIT",
-  "packageManager": "pnpm@10.18.0",
+  "packageManager": "pnpm@10.18.3",
   "devDependencies": {
     "@eslint/js": "^9.36.0",
     "eslint": "^9.36.0",
@@ -55,6 +55,7 @@
     "prettier": "^3.6.2",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.45.0",
+    "valibot": "^1.1.0",
     "vitest": "^3.2.4"
   }
 }

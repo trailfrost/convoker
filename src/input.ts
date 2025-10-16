@@ -1,20 +1,25 @@
-// TODO implement standard schema validation
+import { InputValidationError } from "./error";
+import type { StandardSchemaV1 } from "./standard-schema";
 
 export interface Input {
   [x: string]: Option<any, any, any> | Positional<any, any, any>;
 }
 
-export type Kind = "boolean" | "string" | "number" | "bigint";
+export type BasicKind = "boolean" | "string" | "number" | "bigint";
+export type Kind = BasicKind | StandardSchemaV1<any, any>;
 
-export type TypeOf<T extends Kind> = T extends "boolean"
-  ? boolean
-  : T extends "string"
-    ? string
-    : T extends "number"
-      ? number
-      : T extends "bigint"
-        ? bigint
-        : never;
+export type TypeOf<T extends Kind> =
+  T extends StandardSchemaV1<any, infer Out>
+    ? Out
+    : T extends "boolean"
+      ? boolean
+      : T extends "string"
+        ? string
+        : T extends "number"
+          ? number
+          : T extends "bigint"
+            ? bigint
+            : never;
 
 export type InferInput<T extends Input> = {
   [K in keyof T]: InferEntry<T[K]>;
@@ -34,20 +39,32 @@ export type InferEntry<T> = T extends {
       : TypeOf<TKind> | undefined
   : never;
 
-export function convert<TKind extends Kind>(
+export async function convert<TKind extends Kind>(
   kind: TKind,
   value: string
-): TypeOf<TKind> {
-  switch (kind) {
-    case "boolean":
-      return (value === "true") as any;
-    case "bigint":
-      return BigInt(value) as any;
-    case "number":
-      return parseFloat(value) as any;
-    case "string":
-      return value as any;
+): Promise<TypeOf<TKind>> {
+  // Basic kinds
+  if (typeof kind === "string") {
+    switch (kind) {
+      case "boolean":
+        return (value === "true") as any;
+      case "bigint":
+        return BigInt(value) as any;
+      case "number":
+        return parseFloat(value) as any;
+      case "string":
+        return value as any;
+    }
   }
+
+  // Otherwise, Standard Schema
+  const result = await kind["~standard"].validate(value);
+  if (result.issues) {
+    const msgs = result.issues.map((i) => i.message);
+    throw new InputValidationError(msgs);
+  }
+
+  return result.value;
 }
 
 export class Option<

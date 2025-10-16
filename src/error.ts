@@ -1,6 +1,15 @@
 import type { Command } from "./command";
 import type { Option, Positional } from "./input";
 
+export class InputValidationError extends Error {
+  messages: string[];
+
+  constructor(messages: string[]) {
+    super(`Validation failed: ${messages.join(", ")}`);
+    this.messages = messages;
+  }
+}
+
 export class LucidCLIError extends Error {
   command: Command<any>;
 

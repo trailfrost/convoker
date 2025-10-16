@@ -31,91 +31,91 @@ describe("Command", () => {
     expect(root.$children.get("s")?.command).toBe(sub);
   });
 
-  test("parse() parses boolean option", () => {
+  test("parse() parses boolean option", async () => {
     root.input({
       v: i.option("boolean", "-v", "--verbose"),
     });
-    const { input } = root.parse(["-v"]);
+    const { input } = await root.parse(["-v"]);
     expect(input.v).toBe(true);
   });
 
-  test("parse() parses string option with value", () => {
+  test("parse() parses string option with value", async () => {
     root.input({
       o: i.option("string", "-o", "--output"),
     });
-    const { input } = root.parse(["--output", "file.txt"]);
+    const { input } = await root.parse(["--output", "file.txt"]);
     expect(input.o).toBe("file.txt");
   });
 
-  test("parse() supports --key=value syntax", () => {
+  test("parse() supports --key=value syntax", async () => {
     root.input({
       o: i.option("string", "-o", "--output"),
     });
-    const { input } = root.parse(["--output=file.txt"]);
+    const { input } = await root.parse(["--output=file.txt"]);
     expect(input.o).toBe("file.txt");
   });
 
-  test("parse() supports short option chaining", () => {
+  test("parse() supports short option chaining", async () => {
     root.input({
       a: i.option("boolean", "-a"),
       b: i.option("boolean", "-b"),
     });
-    const { input } = root.parse(["-ab"]);
+    const { input } = await root.parse(["-ab"]);
     expect(input).toEqual({ a: true, b: true });
   });
 
-  test("parse() parses positional args", () => {
+  test("parse() parses positional args", async () => {
     root.input({
       file: i.positional("string").required(),
     });
-    const { input } = root.parse(["main.ts"]);
+    const { input } = await root.parse(["main.ts"]);
     expect(input.file).toBe("main.ts");
   });
 
-  test("parse() fills defaults", () => {
+  test("parse() fills defaults", async () => {
     root.input({
       port: i.option("number", "-p").default(3000),
     });
-    const { input } = root.parse([]);
+    const { input } = await root.parse([]);
     expect(input.port).toBe(3000);
   });
 
-  test("parse() throws on missing required option", () => {
+  test("parse() throws on missing required option", async () => {
     root.input({
       port: i.option("number", "-p").required(),
     });
-    expect(root.parse([]).errors[0]).toBeInstanceOf(
+    expect((await root.parse([])).errors[0]).toBeInstanceOf(
       error.MissingRequiredOption
     );
   });
 
-  test("parse() throws on missing required positional", () => {
+  test("parse() throws on missing required positional", async () => {
     root.input({
       file: i.positional("string").required(),
     });
-    expect(root.parse([]).errors[0]).toBeInstanceOf(
+    expect((await root.parse([])).errors[0]).toBeInstanceOf(
       error.MissingRequiredArgument
     );
   });
 
-  test("parse() throws on unknown option if not allowed", () => {
+  test("parse() throws on unknown option if not allowed", async () => {
     root.input({});
-    expect(root.parse(["--bad"]).errors[0]).toBeInstanceOf(
+    expect((await root.parse(["--bad"])).errors[0]).toBeInstanceOf(
       error.UnknownOptionError
     );
   });
 
-  test("parse() ignores unknown option if allowed", () => {
+  test("parse() ignores unknown option if allowed", async () => {
     root.allowUnknownOptions();
     root.input({});
-    const result = root.parse(["--bad"]);
-    expect(result.input).toEqual({});
+    const { input } = await root.parse(["--bad"]);
+    expect(input).toEqual({});
   });
 
-  test("run() executes help", () => {
+  test("run() executes help", async () => {
     const fn = vi.fn();
     root.help(fn);
-    root.run();
+    await root.run();
 
     expect(fn).toHaveBeenCalled();
   });
@@ -158,53 +158,53 @@ describe("Nested subcommands", () => {
     root = new Command("root");
   });
 
-  test("parse() navigates into subcommand", () => {
+  test("parse() navigates into subcommand", async () => {
     const sub = root.subCommand("sub");
 
-    const { command } = root.parse(["sub"]);
+    const { command } = await root.parse(["sub"]);
     expect(command).toBe(sub);
   });
 
-  test("parse() handles options in subcommand", () => {
+  test("parse() handles options in subcommand", async () => {
     const sub = root.subCommand("sub");
     sub.input({
       flag: i.option("boolean", "-f", "--flag"),
     });
 
-    const { command, input } = root.parse(["--flag", "sub"]);
+    const { command, input } = await root.parse(["--flag", "sub"]);
     expect(command).toBe(sub);
     expect(input.flag).toBe(true);
   });
 
-  test("parse() handles positional in subcommand", () => {
+  test("parse() handles positional in subcommand", async () => {
     const sub = root.subCommand("sub");
     sub.input({
       file: i.positional("string").required(),
     });
 
-    const { command, input } = root.parse(["sub", "main.ts"]);
+    const { command, input } = await root.parse(["sub", "main.ts"]);
     expect(command).toBe(sub);
     expect(input.file).toBe("main.ts");
   });
 
-  test("parse() throws if subcommand is missing required option", () => {
+  test("parse() throws if subcommand is missing required option", async () => {
     const sub = root.subCommand("sub");
     sub.input({
       required: i.option("string", "-r").required(),
     });
 
-    expect(root.parse(["sub"]).errors[0]).toBeInstanceOf(
+    expect((await root.parse(["sub"])).errors[0]).toBeInstanceOf(
       error.MissingRequiredOption
     );
   });
 
-  test("parse() throws if subcommand is missing required positional", () => {
+  test("parse() throws if subcommand is missing required positional", async () => {
     const sub = root.subCommand("sub");
     sub.input({
       required: i.positional("string").required(),
     });
 
-    expect(root.parse(["sub"]).errors[0]).toBeInstanceOf(
+    expect((await root.parse(["sub"])).errors[0]).toBeInstanceOf(
       error.MissingRequiredArgument
     );
   });

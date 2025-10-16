@@ -1,5 +1,6 @@
 // * https://standardschema.dev * //
-// * https://github.com/standard-schema/standard-schema * //
+
+import { InputValidationError } from "./error";
 
 /** The Standard Schema interface. */
 export interface StandardSchemaV1<Input = unknown, Output = Input> {
@@ -7,6 +8,7 @@ export interface StandardSchemaV1<Input = unknown, Output = Input> {
   readonly "~standard": StandardSchemaV1.Props<Input, Output>;
 }
 
+// eslint-disable-next-line -- this is Standard Schema
 export declare namespace StandardSchemaV1 {
   /** The Standard Schema properties interface. */
   export interface Props<Input = unknown, Output = Input> {
@@ -70,4 +72,17 @@ export declare namespace StandardSchemaV1 {
   export type InferOutput<Schema extends StandardSchemaV1> = NonNullable<
     Schema["~standard"]["types"]
   >["output"];
+}
+
+export async function validate<T extends StandardSchemaV1<any, any>>(
+  entry: T,
+  value: any
+): Promise<T extends StandardSchemaV1<any, infer Out> ? Out : never> {
+  const result = await entry["~standard"].validate(value);
+  if (result.issues) {
+    const msgs = result.issues.map((i) => i.message);
+    throw new InputValidationError(msgs);
+  }
+
+  return result.value;
 }

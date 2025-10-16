@@ -1,5 +1,4 @@
-import { InputValidationError } from "./error";
-import type { StandardSchemaV1 } from "./standard-schema";
+import { validate, type StandardSchemaV1 } from "./standard-schema";
 
 export interface Input {
   [x: string]: Option<any, any, any> | Positional<any, any, any>;
@@ -58,13 +57,7 @@ export async function convert<TKind extends Kind>(
   }
 
   // Otherwise, Standard Schema
-  const result = await kind["~standard"].validate(value);
-  if (result.issues) {
-    const msgs = result.issues.map((i) => i.message);
-    throw new InputValidationError(msgs);
-  }
-
-  return result.value;
+  return validate(kind, value);
 }
 
 export class Option<

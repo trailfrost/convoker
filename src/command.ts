@@ -35,6 +35,8 @@ export type HelpFn<T extends Input> = (
   input: InferInput<T>
 ) => void | Promise<void>;
 
+export type Builder = (c: Command<any>) => Command<any> | void;
+
 interface MapEntry {
   key: string;
   value: Option<any, any, any> | Positional<any, any, any>;
@@ -98,12 +100,26 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
+  subCommand(names: string | string[], builder: Builder): this;
   subCommand(
     names: string | string[],
     desc?: string,
     version?: string
-  ): Command {
-    const command = new Command(names, desc, version);
+  ): Command<any>;
+
+  subCommand(
+    names: string | string[],
+    descOrBuilder?: Builder | string,
+    version?: string
+  ): Command<any> {
+    if (typeof descOrBuilder === "function") {
+      const command = new Command(names);
+      descOrBuilder(command);
+      this.add(command);
+      return this;
+    }
+
+    const command = new Command(names, descOrBuilder, version);
     this.add(command);
     return command;
   }

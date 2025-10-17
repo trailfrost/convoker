@@ -8,8 +8,8 @@ describe("validate()", () => {
     expect(await validate(v.string(), "hello world")).toBe("hello world");
   });
 
-  test("validate() throws on wrong input", () => {
-    expect(() => validate(v.string(), 53)).rejects.toThrow(
+  test("validate() throws on wrong input", async () => {
+    await expect(() => validate(v.number(), "hello world")).rejects.toThrow(
       error.InputValidationError
     );
   });

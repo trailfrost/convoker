@@ -158,6 +158,23 @@ describe("Nested subcommands", () => {
     root = new Command("root");
   });
 
+  test("subCommand() supports callback API", async () => {
+    let a: Command<any> | null = null;
+    root.subCommand(
+      "sub",
+      (c) =>
+        (a = c
+          .description("testing")
+          .version("1.0.0")
+          .action(() => {
+            console.log("it works!");
+          }))
+    );
+
+    const { command } = await root.parse(["sub"]);
+    expect(command).toBe(a);
+  });
+
   test("parse() navigates into subcommand", async () => {
     const sub = root.subCommand("sub");
 

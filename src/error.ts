@@ -23,7 +23,15 @@ export class LucidCLIError extends Error {
   }
 }
 
-export class TooManyArguments extends LucidCLIError {
+export class HelpAskedError extends LucidCLIError {
+  constructor(command: Command<any>) {
+    super("user asked for help!", command);
+  }
+
+  print() {}
+}
+
+export class TooManyArgumentsError extends LucidCLIError {
   constructor(command: Command<any>) {
     super("too many arguments!", command);
   }
@@ -38,7 +46,7 @@ export class UnknownOptionError extends LucidCLIError {
   }
 }
 
-export class MissingRequiredOption extends LucidCLIError {
+export class MissingRequiredOptionError extends LucidCLIError {
   key: string;
   entry: Option<any, any, any>;
 
@@ -53,7 +61,7 @@ export class MissingRequiredOption extends LucidCLIError {
   }
 }
 
-export class MissingRequiredArgument extends LucidCLIError {
+export class MissingRequiredArgumentError extends LucidCLIError {
   key: string;
   entry: Positional<any, any, any>;
 

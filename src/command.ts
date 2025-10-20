@@ -1,8 +1,9 @@
 import { gray, cyan, bold } from "./color";
 import {
   LucidCLIError,
-  MissingRequiredArgument,
-  MissingRequiredOption,
+  HelpAskedError,
+  MissingRequiredArgumentError,
+  MissingRequiredOptionError,
   UnknownOptionError,
 } from "./error";
 import {
@@ -30,9 +31,10 @@ export type ActionFn<T extends Input> = (
   input: InferInput<T>
 ) => void | Promise<void>;
 
-export type HelpFn<T extends Input> = (
+export type ErrorFn<T extends Input> = (
   command: Command<T>,
-  input: InferInput<T>
+  errors: Error[],
+  input: Partial<InferInput<T>>
 ) => void | Promise<void>;
 
 export type Builder = (c: Command<any>) => Command<any> | void;
@@ -52,7 +54,7 @@ export class Command<T extends Input = Input> {
 
   $input: T = {} as T;
   $fn: ActionFn<T> | undefined = undefined;
-  $helpFn: HelpFn<T> | undefined = undefined;
+  $errorFn: ErrorFn<T> | undefined = undefined;
 
   constructor(names: string | string[], desc?: string, version?: string) {
     this.$names = Array.isArray(names) ? names : [names];
@@ -85,8 +87,8 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
-  help(fn: HelpFn<T>): this {
-    this.$helpFn = fn;
+  help(fn: ErrorFn<T>): this {
+    this.$errorFn = fn;
     return this;
   }
 
@@ -249,9 +251,9 @@ export class Command<T extends Input = Input> {
         input[key] = entry.$default;
       } else if (entry.$required) {
         if (entry instanceof Option) {
-          errors.push(new MissingRequiredOption(command, key, entry));
+          errors.push(new MissingRequiredOptionError(command, key, entry));
         } else {
-          errors.push(new MissingRequiredArgument(command, key, entry));
+          errors.push(new MissingRequiredArgumentError(command, key, entry));
         }
       }
     }
@@ -308,7 +310,18 @@ export class Command<T extends Input = Input> {
     return names.join(" ");
   }
 
-  private printHelpScreen(): this {
+  private defaultErrorScreen(errors: Error[]) {
+    let printHelpScreen = false;
+    for (const error of errors) {
+      if (error instanceof LucidCLIError) {
+        error.print();
+        printHelpScreen = true;
+      }
+
+      throw error;
+    }
+
+    if (!printHelpScreen) return;
     const pad = (s: string, len: number) => s.padEnd(len, " ");
 
     console.log(
@@ -381,22 +394,24 @@ export class Command<T extends Input = Input> {
         `run '${cyan(`${this.fullCommandPath()} <command> --help`)}' for more info on a command.`
       );
     }
-
-    return this;
   }
 
-  async runHelp(input?: InferInput<T>): Promise<this> {
+  async handleError(
+    errors: Error[],
+    input?: Partial<InferInput<T>>
+  ): Promise<this> {
     // eslint-disable-next-line -- necessary for traversing up the tree
     let command: Command<any> = this;
-    while (!command.$helpFn && command.$parent) {
+    while (!command.$errorFn && command.$parent) {
       command = command.$parent;
     }
 
-    if (command.$helpFn) {
-      await command.$helpFn(command, input ?? ({} as InferInput<T>));
+    if (command.$errorFn) {
+      await command.$errorFn(command, errors, input ?? {});
       return this;
     } else {
-      return this.printHelpScreen();
+      this.defaultErrorScreen(errors);
+      return this;
     }
   }
 
@@ -417,7 +432,7 @@ export class Command<T extends Input = Input> {
 
     const result = await this.parse(argv);
     if (result.isHelp) {
-      result.command.printHelpScreen();
+      result.command.handleError([new HelpAskedError(result.command)]);
       return this;
     } else if (result.isVersion) {
       console.log(
@@ -426,15 +441,21 @@ export class Command<T extends Input = Input> {
       return this;
     }
 
-    if (result.errors.length > 0) {
-      for (const error of result.errors) {
-        error.print();
+    try {
+      if (result.errors.length > 0) {
+        await result.command.handleError(result.errors, result.input);
+      } else if (!result.command.$fn) {
+        await result.command.handleError(result.errors, result.input);
+      } else {
+        await result.command.$fn(result.input);
       }
-      await result.command.runHelp(result.input);
-    } else if (!result.command.$fn) {
-      await result.command.runHelp(result.input);
-    } else {
-      await result.command.$fn(result.input);
+    } catch (e) {
+      if (!(e instanceof Error)) {
+        console.warn(
+          "[lucidcli] an error that is not instance of `Error` was thrown. this may cause undefined behavior."
+        );
+      }
+      await result.command.handleError([e as Error]);
     }
     return this;
   }

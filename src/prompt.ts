@@ -2,13 +2,13 @@ export interface BaseOpts<T> {
   message: string;
   signal?: AbortSignal;
   default?: T;
+  validate?(value: T): boolean | T;
 }
 
 export interface TextOpts extends BaseOpts<string> {
   placeholder?: string;
   minLength?: number;
   maxLength?: number;
-  validate?(value: string): true | string;
 }
 
 export interface PasswordOpts extends TextOpts {
@@ -38,7 +38,6 @@ export interface SearchOpts<T> extends BaseOpts<T> {
   filter?(query: string, option: SelectOption<T>): boolean;
 }
 
-/** Options for yes/no confirmation prompt */
 export interface ConfirmOpts extends BaseOpts<boolean> {
   yesLabel?: string;
   noLabel?: string;
@@ -66,7 +65,7 @@ export function select<T>(opts: SelectOpts<T>): T {
   throw new Error("Not implemented");
 }
 
-export function multiselect<T>(opts: SelectOpts<T>): T {
+export function multiselect<T>(opts: SelectOpts<T>): T[] {
   // TODO
   throw new Error("Not implemented");
 }

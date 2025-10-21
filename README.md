@@ -1,9 +1,9 @@
-# LucidCLI
+# LunarCLI
 
 A simple, type safe CLI library for TypeScript.
 
 ```ts
-import { i, Command } from "lucidcli";
+import { i, Command } from "lunarcli";
 
 const program = new Command("calc").description("A basic calculator.");
 

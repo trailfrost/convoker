@@ -40,7 +40,7 @@ export type InferEntry<T> = T extends {
 
 export async function convert<TKind extends Kind>(
   kind: TKind,
-  value: string
+  value: string,
 ): Promise<TypeOf<TKind>> {
   // Basic kinds
   if (typeof kind === "string") {

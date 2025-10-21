@@ -10,7 +10,7 @@ describe("validate()", () => {
 
   test("validate() throws on wrong input", async () => {
     await expect(() => validate(v.number(), "hello world")).rejects.toThrow(
-      error.InputValidationError
+      error.InputValidationError,
     );
   });
 });

@@ -1,4 +1,4 @@
-import { deepMerge, DEFAULT_THEME, type Theme } from "./color";
+import { merge, DEFAULT_THEME, type Theme } from "./color";
 
 export interface LogConfig {
   format: "text" | "json" | "xml" | "yaml" | "csv";
@@ -106,7 +106,7 @@ export function setTheme(t: Theme) {
 }
 
 export async function setConfig(c: Partial<LogConfig>) {
-  config = deepMerge(
+  config = merge(
     {
       format: "text",
       stdout: await getDefaultStdout(),
@@ -114,7 +114,7 @@ export async function setConfig(c: Partial<LogConfig>) {
       stdin: await getDefaultStdin(),
     },
     c
-  );
+  ) as LogConfig;
 }
 
 export async function setup() {

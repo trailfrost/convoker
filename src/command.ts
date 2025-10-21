@@ -2,7 +2,7 @@ import { gray, cyan, bold, type Theme } from "./color";
 import { setTheme as setPromptTheme } from "./prompt";
 import { setTheme as setLogTheme } from "./log";
 import {
-  LucidCLIError,
+  LunarCLIError,
   HelpAskedError,
   MissingRequiredArgumentError,
   MissingRequiredOptionError,
@@ -24,19 +24,19 @@ export interface CommandAlias<T extends Input = Input> {
 export interface ParseResult<T extends Input> {
   command: Command<T>;
   input: InferInput<T>;
-  errors: LucidCLIError[];
+  errors: LunarCLIError[];
   isVersion: boolean;
   isHelp: boolean;
 }
 
 export type ActionFn<T extends Input> = (
-  input: InferInput<T>
+  input: InferInput<T>,
 ) => void | Promise<void>;
 
 export type ErrorFn<T extends Input> = (
   command: Command<T>,
   errors: Error[],
-  input: Partial<InferInput<T>>
+  input: Partial<InferInput<T>>,
 ) => void | Promise<void>;
 
 export type Builder = (c: Command<any>) => Command<any> | void;
@@ -109,13 +109,13 @@ export class Command<T extends Input = Input> {
   subCommand(
     names: string | string[],
     desc?: string,
-    version?: string
+    version?: string,
   ): Command<any>;
 
   subCommand(
     names: string | string[],
     descOrBuilder?: Builder | string,
-    version?: string
+    version?: string,
   ): Command<any> {
     if (typeof descOrBuilder === "function") {
       const command = new Command(names);
@@ -143,7 +143,7 @@ export class Command<T extends Input = Input> {
     const args: string[] = [];
     const opts: Record<string, string> = {};
 
-    const errors: LucidCLIError[] = [];
+    const errors: LunarCLIError[] = [];
     const map = command.buildInputMap();
 
     function getOption(key: string, isSpecial?: boolean) {
@@ -159,7 +159,7 @@ export class Command<T extends Input = Input> {
     function setOption(
       key: string,
       option: Option<any, any, any>,
-      value?: string
+      value?: string,
     ) {
       if (option.$kind === "boolean") {
         opts[key] = "true";
@@ -191,7 +191,7 @@ export class Command<T extends Input = Input> {
             setOption(
               key,
               option,
-              option.$kind === "boolean" ? undefined : argv[++i]
+              option.$kind === "boolean" ? undefined : argv[++i],
             );
           else setOption(key, option, value);
         }
@@ -275,7 +275,7 @@ export class Command<T extends Input = Input> {
   }
 
   private buildInputMap(
-    ignoreParentMap?: boolean
+    ignoreParentMap?: boolean,
   ): Map<string | number, MapEntry> {
     const map = new Map<string | number, MapEntry>();
 
@@ -320,7 +320,7 @@ export class Command<T extends Input = Input> {
   private defaultErrorScreen(errors: Error[]) {
     let printHelpScreen = false;
     for (const error of errors) {
-      if (error instanceof LucidCLIError) {
+      if (error instanceof LunarCLIError) {
         error.print();
         printHelpScreen = true;
       }
@@ -332,7 +332,7 @@ export class Command<T extends Input = Input> {
     const pad = (s: string, len: number) => s.padEnd(len, " ");
 
     console.log(
-      `${bold("usage:")} ${cyan(this.fullCommandPath())} ${gray("[options] [arguments]")}`
+      `${bold("usage:")} ${cyan(this.fullCommandPath())} ${gray("[options] [arguments]")}`,
     );
     if (this.$description) {
       console.log(`${this.$description}`);
@@ -350,7 +350,7 @@ export class Command<T extends Input = Input> {
     if (opts.length > 0) {
       console.log(bold("options:"));
       const longest = Math.max(
-        ...opts.map(({ entry }) => entry.$names.join(", ").length)
+        ...opts.map(({ entry }) => entry.$names.join(", ").length),
       );
       for (const { entry } of opts) {
         const names = entry.$names
@@ -387,8 +387,8 @@ export class Command<T extends Input = Input> {
           [...this.$children.values()].map((a) => [
             a.command.$names[0],
             a.command,
-          ])
-        ).values()
+          ]),
+        ).values(),
       );
 
       const longest = Math.max(...deduped.map((c) => c.$names[0].length));
@@ -398,14 +398,14 @@ export class Command<T extends Input = Input> {
       }
       console.log();
       console.log(
-        `run '${cyan(`${this.fullCommandPath()} <command> --help`)}' for more info on a command.`
+        `run '${cyan(`${this.fullCommandPath()} <command> --help`)}' for more info on a command.`,
       );
     }
   }
 
   async handleError(
     errors: Error[],
-    input?: Partial<InferInput<T>>
+    input?: Partial<InferInput<T>>,
   ): Promise<this> {
     // eslint-disable-next-line -- necessary for traversing up the tree
     let command: Command<any> = this;
@@ -443,7 +443,7 @@ export class Command<T extends Input = Input> {
       return this;
     } else if (result.isVersion) {
       console.log(
-        `${this.fullCommandPath()} version ${result.command.$version}`
+        `${this.fullCommandPath()} version ${result.command.$version}`,
       );
       return this;
     }
@@ -459,7 +459,7 @@ export class Command<T extends Input = Input> {
     } catch (e) {
       if (!(e instanceof Error)) {
         console.warn(
-          "[lucidcli] an error that is not instance of `Error` was thrown. this may cause undefined behavior."
+          "[lunarcli] an error that is not instance of `Error` was thrown. this may cause undefined behavior.",
         );
       }
       await result.command.handleError([e as Error]);

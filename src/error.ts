@@ -10,7 +10,7 @@ export class InputValidationError extends Error {
   }
 }
 
-export class LucidCLIError extends Error {
+export class LunarCLIError extends Error {
   command: Command<any>;
 
   constructor(message: string, command: Command<any>) {
@@ -23,7 +23,7 @@ export class LucidCLIError extends Error {
   }
 }
 
-export class HelpAskedError extends LucidCLIError {
+export class HelpAskedError extends LunarCLIError {
   constructor(command: Command<any>) {
     super("user asked for help!", command);
   }
@@ -31,13 +31,13 @@ export class HelpAskedError extends LucidCLIError {
   print() {}
 }
 
-export class TooManyArgumentsError extends LucidCLIError {
+export class TooManyArgumentsError extends LunarCLIError {
   constructor(command: Command<any>) {
     super("too many arguments!", command);
   }
 }
 
-export class UnknownOptionError extends LucidCLIError {
+export class UnknownOptionError extends LunarCLIError {
   key: string;
 
   constructor(command: Command<any>, key: string) {
@@ -46,14 +46,14 @@ export class UnknownOptionError extends LucidCLIError {
   }
 }
 
-export class MissingRequiredOptionError extends LucidCLIError {
+export class MissingRequiredOptionError extends LunarCLIError {
   key: string;
   entry: Option<any, any, any>;
 
   constructor(
     command: Command<any>,
     key: string,
-    entry: Option<any, any, any>
+    entry: Option<any, any, any>,
   ) {
     super(`missing required option: ${key}!`, command);
     this.key = key;
@@ -61,14 +61,14 @@ export class MissingRequiredOptionError extends LucidCLIError {
   }
 }
 
-export class MissingRequiredArgumentError extends LucidCLIError {
+export class MissingRequiredArgumentError extends LunarCLIError {
   key: string;
   entry: Positional<any, any, any>;
 
   constructor(
     command: Command<any>,
     key: string,
-    entry: Positional<any, any, any>
+    entry: Positional<any, any, any>,
   ) {
     super(`missing required positional argument: ${key}!`, command);
     this.key = key;

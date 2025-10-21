@@ -18,7 +18,6 @@ describe("Command", () => {
   test("adds and resolves subcommands", () => {
     const sub = new Command("sub").description("test");
     root.add(sub);
-    root.runHelp();
     expect(root.$children.get("sub")?.command).toBe(sub);
     expect(sub.$parent).toBe(root);
   });
@@ -85,7 +84,7 @@ describe("Command", () => {
       port: i.option("number", "-p").required(),
     });
     expect((await root.parse([])).errors[0]).toBeInstanceOf(
-      error.MissingRequiredOption
+      error.MissingRequiredOptionError,
     );
   });
 
@@ -94,14 +93,14 @@ describe("Command", () => {
       file: i.positional("string").required(),
     });
     expect((await root.parse([])).errors[0]).toBeInstanceOf(
-      error.MissingRequiredArgument
+      error.MissingRequiredArgumentError,
     );
   });
 
   test("parse() throws on unknown option if not allowed", async () => {
     root.input({});
     expect((await root.parse(["--bad"])).errors[0]).toBeInstanceOf(
-      error.UnknownOptionError
+      error.UnknownOptionError,
     );
   });
 
@@ -131,7 +130,7 @@ describe("Command", () => {
   });
 
   test("run() prints help screen if no action is set", async () => {
-    const spy = vi.spyOn(root, "runHelp");
+    const spy = vi.spyOn(root, "handleError");
     await root.run([]);
     expect(spy).toHaveBeenCalled();
   });
@@ -141,10 +140,10 @@ describe("Command", () => {
       required: i.option("string", "-r").required().description("Example"),
     });
     const errorSpy = vi.spyOn(console, "error").mockImplementation(() => {});
-    const helpSpy = vi.spyOn(root, "runHelp");
+    const helpSpy = vi.spyOn(root, "handleError");
     await root.run([]);
     expect(errorSpy).toHaveBeenCalledWith(
-      expect.stringContaining("missing required option")
+      expect.stringContaining("missing required option"),
     );
     expect(helpSpy).toHaveBeenCalled();
     errorSpy.mockRestore();
@@ -168,7 +167,7 @@ describe("Nested subcommands", () => {
           .version("1.0.0")
           .action(() => {
             console.log("it works!");
-          }))
+          })),
     );
 
     const { command } = await root.parse(["sub"]);
@@ -211,7 +210,7 @@ describe("Nested subcommands", () => {
     });
 
     expect((await root.parse(["sub"])).errors[0]).toBeInstanceOf(
-      error.MissingRequiredOption
+      error.MissingRequiredOptionError,
     );
   });
 
@@ -222,7 +221,7 @@ describe("Nested subcommands", () => {
     });
 
     expect((await root.parse(["sub"])).errors[0]).toBeInstanceOf(
-      error.MissingRequiredArgument
+      error.MissingRequiredArgumentError,
     );
   });
 
@@ -240,7 +239,7 @@ describe("Nested subcommands", () => {
 
   test("run() prints help screen if subcommand has no action", async () => {
     const sub = root.subCommand("sub");
-    const helpSpy = vi.spyOn(sub, "runHelp");
+    const helpSpy = vi.spyOn(sub, "handleError");
 
     await root.run(["sub"]);
     expect(helpSpy).toHaveBeenCalled();

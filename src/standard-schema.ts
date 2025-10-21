@@ -18,7 +18,7 @@ export declare namespace StandardSchemaV1 {
     readonly vendor: string;
     /** Validates unknown input values. */
     readonly validate: (
-      value: unknown
+      value: unknown,
     ) => Result<Output> | Promise<Result<Output>>;
     /** Inferred types associated with the schema. */
     readonly types?: Types<Input, Output> | undefined;
@@ -76,7 +76,7 @@ export declare namespace StandardSchemaV1 {
 
 export async function validate<T extends StandardSchemaV1<any, any>>(
   entry: T,
-  value: any
+  value: any,
 ): Promise<T extends StandardSchemaV1<any, infer Out> ? Out : never> {
   const result = await entry["~standard"].validate(value);
   if (result.issues) {

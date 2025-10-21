@@ -1,7 +1,11 @@
-import type { Theme } from "./color";
+import { DEFAULT_THEME, type Theme } from "./color";
 import type { StandardSchemaV1 } from "./standard-schema";
 
-// TODO add global themes
+let theme: Theme = DEFAULT_THEME;
+
+export function setTheme(t: Theme) {
+  theme = t;
+}
 
 export interface BaseOpts<T> {
   message: string;

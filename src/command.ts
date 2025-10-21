@@ -1,4 +1,6 @@
-import { gray, cyan, bold } from "./color";
+import { gray, cyan, bold, type Theme } from "./color";
+import { setTheme as setPromptTheme } from "./prompt";
+import { setTheme as setLogTheme } from "./log";
 import {
   LucidCLIError,
   HelpAskedError,
@@ -47,6 +49,7 @@ interface MapEntry {
 export class Command<T extends Input = Input> {
   $names: string[];
   $description: string | undefined;
+  $theme: Theme | undefined;
   $version: string | undefined;
   $children: Map<string, CommandAlias> = new Map();
   $parent: Command<any> | undefined;
@@ -221,6 +224,10 @@ export class Command<T extends Input = Input> {
         // positional
         if (command.$children.has(arg) && !found) {
           command = command.$children.get(arg)!.command;
+          if (command.$theme) {
+            setPromptTheme(command.$theme);
+            setLogTheme(command.$theme);
+          }
         } else {
           found = true;
           args.push(arg);

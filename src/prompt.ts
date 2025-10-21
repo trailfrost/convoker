@@ -1,8 +1,14 @@
+import type { Theme } from "./color";
+import type { StandardSchemaV1 } from "./standard-schema";
+
+// TODO add global themes
+
 export interface BaseOpts<T> {
   message: string;
   signal?: AbortSignal;
   default?: T;
-  validate?(value: T): boolean | T;
+  theme?: Theme;
+  validate?: (value: T) => StandardSchemaV1<any, T> | boolean | T;
 }
 
 export interface TextOpts extends BaseOpts<string> {

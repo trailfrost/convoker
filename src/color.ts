@@ -128,3 +128,69 @@ export const bgBlueBright = createAnsiColor(104, 49);
 export const bgMagentaBright = createAnsiColor(105, 49);
 export const bgCyanBright = createAnsiColor(106, 49);
 export const bgWhiteBright = createAnsiColor(107, 49);
+
+export interface Theme {
+  background?(a: string): string;
+  foreground?(a: string): string;
+  primary(a: string): string;
+  secondary(a: string): string;
+  accent?(a: string): string;
+
+  success(a: string): string;
+  warning(a: string): string;
+  error(a: string): string;
+  info?(a: string): string;
+
+  symbols?: {
+    success: string;
+    error: string;
+    warning: string;
+    info?: string;
+  };
+
+  styles?: {
+    bold?(a: string): string;
+    italic?(a: string): string;
+    underline?(a: string): string;
+  };
+}
+
+export const DEFAULT_THEME: Theme = {
+  primary: cyan,
+  secondary: gray,
+
+  success: green,
+  warning: yellow,
+  error: red,
+
+  symbols: {
+    success: "✔",
+    error: "✖",
+    warning: "⚠",
+  },
+
+  styles: {
+    bold: bold,
+    italic: italic,
+    underline: underline,
+  },
+};
+
+export function defineTheme(theme: Partial<Theme>): Theme {
+  return deepMerge(DEFAULT_THEME, theme);
+}
+
+export function deepMerge(target: object, source: object): any {
+  const out: Record<string | number | symbol, any> = { ...target };
+  for (const key of Object.keys(source)) {
+    const sVal = (source as any)[key];
+    const tVal = (target as any)[key];
+
+    if (typeof sVal === "object" && typeof tVal === "object") {
+      out[key] = deepMerge(tVal, sVal);
+    } else {
+      out[key] = tVal;
+    }
+  }
+  return out;
+}

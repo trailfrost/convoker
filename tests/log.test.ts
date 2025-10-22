@@ -62,7 +62,6 @@ describe("logging module", () => {
   });
 
   test("fatal writes to stderr", async () => {
-    // @ts-expect-error `process` is a global in Node.js and Bun
     const exitMock = vi.spyOn(process, "exit").mockImplementation(() => {
       throw new Error("process.exit called");
     });

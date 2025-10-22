@@ -6,24 +6,24 @@
   "types": "./dist/index.d.ts",
   "exports": {
     "./command": {
-      "default": "./dist/command.js",
-      "types": "./dist/command.d.ts"
+      "types": "./dist/command.d.ts",
+      "default": "./dist/command.js"
     },
     "./input": {
-      "default": "./dist/input.js",
-      "types": "./dist/types.d.ts"
+      "types": "./dist/types.d.ts",
+      "default": "./dist/input.js"
     },
     "./color": {
-      "default": "./dist/color.js",
-      "types": "./dist/color.d.ts"
+      "types": "./dist/color.d.ts",
+      "default": "./dist/color.js"
     },
     "./prompt": {
-      "default": "./dist/prompt.js",
-      "types": "./dist/prompt.d.ts"
+      "types": "./dist/prompt.d.ts",
+      "default": "./dist/prompt.js"
     },
     "./error": {
-      "default": "./dist/error.js",
-      "types": "./dist/error.d.ts"
+      "types": "./dist/error.d.ts",
+      "default": "./dist/error.js"
     }
   },
   "type": "module",

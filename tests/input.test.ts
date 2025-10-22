@@ -1,6 +1,6 @@
 import * as v from "valibot";
 import { describe, test, expect } from "vitest";
-import { i } from "../src";
+import { i } from "@/index";
 
 // --- Runtime tests ---
 describe("Option", () => {

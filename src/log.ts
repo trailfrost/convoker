@@ -8,36 +8,27 @@ export interface LogConfig {
 }
 
 const isNode =
-  // @ts-expect-error `process` is a global in Node
   typeof process !== "undefined" &&
-  // @ts-expect-error `process` is a global in Node
   process.versions != null &&
-  // @ts-expect-error `process` is a global in Node
   process.versions.node != null;
 
 const isDeno =
-  // @ts-expect-error `Deno` is a global in Deno
   typeof Deno !== "undefined" && typeof Deno.version?.deno === "string";
 
-// @ts-expect-error `Bun` is a global in Bun
 const isBun = typeof Bun !== "undefined" && typeof Bun.version === "string";
 
 async function getDefaultStdout() {
-  // @ts-expect-error `process` is a global in Node
   if (isNode && process.stdout?.writable) {
-    // @ts-expect-error `node:stream` exists in Node
     const { Writable } = await import("node:stream");
-    // @ts-expect-error `process` is a global in Node
+
     return Writable.toWeb(process.stdout);
   }
-  // @ts-expect-error `Deno` is a global in Deno
+
   if (isDeno && Deno.stdout?.writable) {
-    // @ts-expect-error `Deno` is a global in Deno
     return Deno.stdout.writable;
   }
-  // @ts-expect-error `Bun` is a global in Bun
+
   if (isBun && Bun.stdout) {
-    // @ts-expect-error `Bun` is a global in Bun
     return Bun.stdout;
   }
   // Workers: emulate with console.log
@@ -49,21 +40,17 @@ async function getDefaultStdout() {
 }
 
 async function getDefaultStderr() {
-  // @ts-expect-error `process` is a global in Node
   if (isNode && process.stderr?.writable) {
-    // @ts-expect-error `node:stream` exists in Node
     const { Writable } = await import("node:stream");
-    // @ts-expect-error `process` is a global in Node
+
     return Writable.toWeb(process.stderr);
   }
-  // @ts-expect-error `Deno` is a global in Deno
+
   if (isDeno && Deno.stderr?.writable) {
-    // @ts-expect-error `Deno` is a global in Deno
     return Deno.stderr.writable;
   }
-  // @ts-expect-error `Bun` is a global in Bun
+
   if (isBun && Bun.stderr) {
-    // @ts-expect-error `Bun` is a global in Bun
     return Bun.stderr;
   }
   // Workers: emulate with console.error
@@ -75,19 +62,15 @@ async function getDefaultStderr() {
 }
 
 async function getDefaultStdin() {
-  // @ts-expect-error `process` is a global in Node
   if (isNode && process.stdin?.readable) {
-    // @ts-expect-error `node:stream` exists in Node
-    const { Readable } = await import("node:stream"); // @ts-expect-error `process` is a global in Node
+    const { Readable } = await import("node:stream");
     return Readable.toWeb(process.stdin);
   }
-  // @ts-expect-error `Deno` is a global in Deno
+
   if (isDeno && Deno.stdin?.readable) {
-    // @ts-expect-error `Deno` is a global in Deno
     return Deno.stdin.readable;
   }
   if (isBun) {
-    // @ts-expect-error `Bun` is a global in Bun
     return Bun.stdin.stream();
   }
   // Workers don't support stdin
@@ -207,10 +190,8 @@ export async function fatal(...msgs: any[]) {
 
   // Exit depending on runtime
   if (isDeno) {
-    // @ts-expect-error `Deno` is a global in Deno
     Deno.exit(-1);
   } else if (isNode || isBun) {
-    // @ts-expect-error `process` is a global in Node and Bun
     process.exit(-1);
   }
 }

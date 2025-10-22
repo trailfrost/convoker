@@ -428,16 +428,11 @@ export class Command<T extends Input = Input> {
   async run(argv?: string[]): Promise<this> {
     if (!argv) {
       argv =
-        // @ts-expect-error `Bun` is a global in Bun
         typeof Bun !== "undefined"
-          ? // @ts-expect-error `Bun` is a global in Bun
-            (Bun.argv.slice(2) as string[])
-          : // @ts-expect-error `Deno` is a global in Deno
-            typeof Deno !== "undefined"
-            ? // @ts-expect-error `Deno` is a global in Deno
-              (Deno.args as string[])
-            : // @ts-expect-error `process` is a global in Node
-              (process.argv.slice(2) as string[]);
+          ? (Bun.argv.slice(2) as string[])
+          : typeof Deno !== "undefined"
+            ? (Deno.args as string[])
+            : (process.argv.slice(2) as string[]);
     }
 
     const result = await this.parse(argv);

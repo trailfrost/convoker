@@ -1,5 +1,5 @@
 import { describe, test, expect, vi, beforeEach } from "vitest";
-import { Command, error, i } from "../src";
+import { Command, error, i } from "@/index";
 
 describe("Command", () => {
   let root: Command;

@@ -4,7 +4,6 @@ function detectColorSupport() {
     return false;
   }
 
-  // @ts-expect-error `process` is a global in Node and Bun
   const env = typeof process !== "undefined" ? (process.env ?? {}) : {};
 
   // Force-disable colors if NO_COLOR is set
@@ -33,19 +32,13 @@ function detectColorSupport() {
   }
 
   // Deno detection
-  // @ts-expect-error `Deno` is a global in Deno
+
   if (typeof Deno !== "undefined" && Deno.noColor !== undefined) {
-    // @ts-expect-error `Deno` is a global in Deno
     return !Deno.noColor;
   }
 
   // Node.js or Bun detection
-  if (
-    // @ts-expect-error `process` is a global in Node.js and Bun
-    typeof process !== "undefined" &&
-    // @ts-expect-error `process` is a global in Node.js and Bun
-    process.stdout
-  ) {
+  if (typeof process !== "undefined" && process.stdout) {
     const term = env.TERM || "";
     const colorterm = env.COLORTERM || "";
 

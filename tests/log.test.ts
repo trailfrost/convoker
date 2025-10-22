@@ -1,14 +1,6 @@
 import { beforeEach, describe, expect, test, vi } from "vitest";
-import {
-  setTheme,
-  setConfig,
-  trace,
-  info,
-  warn,
-  error,
-  fatal,
-} from "../src/log";
-import { DEFAULT_THEME } from "../src/color";
+import { setTheme, setConfig, trace, info, warn, error, fatal } from "@/log";
+import { DEFAULT_THEME } from "@/color";
 
 describe("logging module", () => {
   let stdout: WritableStream<string>;
@@ -70,7 +62,7 @@ describe("logging module", () => {
   });
 
   test("fatal writes to stderr", async () => {
-    // @ts-expect-error `process` is a global in Node and Bun
+    // @ts-expect-error `process` is a global in Node.js and Bun
     const exitMock = vi.spyOn(process, "exit").mockImplementation(() => {
       throw new Error("process.exit called");
     });

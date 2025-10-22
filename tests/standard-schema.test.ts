@@ -1,4 +1,4 @@
-import { error } from "../src";
+import { error } from "@/index";
 import { validate } from "../src/standard-schema";
 import { describe, expect, test } from "vitest";
 import * as v from "valibot";

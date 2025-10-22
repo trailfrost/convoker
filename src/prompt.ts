@@ -60,37 +60,37 @@ export interface EditorOpts extends BaseOpts<string> {
   required?: boolean;
 }
 
-export function text(opts: TextOpts): string {
+export async function text(opts: TextOpts): Promise<string> {
   // TODO
   throw new Error("Not implemented");
 }
 
-export function password(opts: PasswordOpts): string {
+export async function password(opts: PasswordOpts): Promise<string> {
   // TODO
   throw new Error("Not implemented");
 }
 
-export function select<T>(opts: SelectOpts<T>): T {
+export async function select<T>(opts: SelectOpts<T>): Promise<T> {
   // TODO
   throw new Error("Not implemented");
 }
 
-export function multiselect<T>(opts: SelectOpts<T>): T[] {
+export async function multiselect<T>(opts: SelectOpts<T>): Promise<T[]> {
   // TODO
   throw new Error("Not implemented");
 }
 
-export function search<T>(opts: SearchOpts<T>): T {
+export async function search<T>(opts: SearchOpts<T>): Promise<T> {
   // TODO
   throw new Error("Not implemented");
 }
 
-export function confirm(opts: ConfirmOpts): boolean {
+export async function confirm(opts: ConfirmOpts): Promise<boolean> {
   // TODO
   throw new Error("Not implemented");
 }
 
-export function editor(opts: EditorOpts): string {
+export async function editor(opts: EditorOpts): Promise<string> {
   // TODO
   throw new Error("Not implemented");
 }

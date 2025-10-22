@@ -319,14 +319,18 @@ export class Command<T extends Input = Input> {
 
   private defaultErrorScreen(errors: Error[]) {
     let printHelpScreen = false;
+    const nonCliErrors: Error[] = [];
+
     for (const error of errors) {
       if (error instanceof LunarCLIError) {
-        error.print();
+        if (!(error instanceof HelpAskedError)) error.print();
         printHelpScreen = true;
+      } else {
+        nonCliErrors.push(error);
       }
-
-      throw error;
     }
+
+    if (nonCliErrors.length) throw nonCliErrors[0];
 
     if (!printHelpScreen) return;
     const pad = (s: string, len: number) => s.padEnd(len, " ");
@@ -415,11 +419,10 @@ export class Command<T extends Input = Input> {
 
     if (command.$errorFn) {
       await command.$errorFn(command, errors, input ?? {});
-      return this;
     } else {
       this.defaultErrorScreen(errors);
-      return this;
     }
+    return this;
   }
 
   async run(argv?: string[]): Promise<this> {
@@ -443,7 +446,7 @@ export class Command<T extends Input = Input> {
       return this;
     } else if (result.isVersion) {
       console.log(
-        `${this.fullCommandPath()} version ${result.command.$version}`,
+        `${result.command.fullCommandPath()} version ${result.command.$version}`,
       );
       return this;
     }
@@ -452,7 +455,10 @@ export class Command<T extends Input = Input> {
       if (result.errors.length > 0) {
         await result.command.handleError(result.errors, result.input);
       } else if (!result.command.$fn) {
-        await result.command.handleError(result.errors, result.input);
+        await result.command.handleError(
+          [new HelpAskedError(result.command), ...result.errors],
+          result.input,
+        );
       } else {
         await result.command.$fn(result.input);
       }

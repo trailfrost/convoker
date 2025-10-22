@@ -113,7 +113,7 @@ export async function setConfig(c: Partial<LogConfig>) {
       stderr: await getDefaultStderr(),
       stdin: await getDefaultStdin(),
     },
-    c
+    c,
   ) as LogConfig;
 }
 

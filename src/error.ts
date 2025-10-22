@@ -27,8 +27,6 @@ export class HelpAskedError extends LunarCLIError {
   constructor(command: Command<any>) {
     super("user asked for help!", command);
   }
-
-  print() {}
 }
 
 export class TooManyArgumentsError extends LunarCLIError {

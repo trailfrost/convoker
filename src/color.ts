@@ -63,7 +63,7 @@ export const supportsColor = detectColorSupport();
 
 export function createAnsiColor(
   open: number,
-  close: number
+  close: number,
 ): (input: any) => string {
   const openCode = `\u001b[${open}m`;
   const closeCode = `\u001b[${close}m`;
@@ -77,7 +77,7 @@ export function createAnsiColor(
     // replace any existing close codes with reopen
     const replaced = str.replace(
       new RegExp(`\u001b\\[${close}m`, "g"),
-      closeCode + openCode
+      closeCode + openCode,
     );
     return openCode + replaced + closeCode;
   };

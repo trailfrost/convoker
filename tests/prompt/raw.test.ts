@@ -112,7 +112,7 @@ describe("cursor and clear functions", () => {
     const { clearLines } = await import("@/prompt/raw");
     clearLines(2);
     expect(writeSpy).toHaveBeenCalledWith(
-      expect.stringContaining("\x1b[2K\x1b[1A")
+      expect.stringContaining("\x1b[2K\x1b[1A"),
     );
     expect(writeSpy).toHaveBeenLastCalledWith("\x1b[2K\r");
   });

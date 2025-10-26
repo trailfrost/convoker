@@ -53,7 +53,7 @@ export async function password(opts: PasswordOpts): Promise<string> {
       {
         masked: true,
         maskChar: opts.mask ?? "*",
-      }
+      },
     );
     if (first !== second) throw new Error(th.error("Passwords do not match"));
   }
@@ -92,7 +92,7 @@ export async function select<T>(opts: SelectOpts<T>): Promise<T> {
 
   console.log(th.primary(opts.message));
   options.forEach((o, i) =>
-    console.log(`${i === index ? "> " : "  "}${o.label}`)
+    console.log(`${i === index ? "> " : "  "}${o.label}`),
   );
 
   while (true) {
@@ -162,7 +162,7 @@ export async function search<T>(opts: SearchOpts<T>): Promise<T> {
     console.log(th.primary(opts.message));
     const matches = opts.options.filter((o) => filter(query, o));
     matches.forEach((o) =>
-      console.log("  " + (th.foreground?.(o.label) ?? o.label))
+      console.log("  " + (th.foreground?.(o.label) ?? o.label)),
     );
     const input = await raw.readLine(th.secondary(`Search: ${query}`));
     if (input === "") continue;
@@ -182,7 +182,7 @@ export async function confirm(opts: ConfirmOpts): Promise<boolean> {
   const no = opts.noLabel ?? "n";
   const def = opts.default ? yes : no;
   const res = await raw.readLine(
-    `${th.primary(opts.message)} ${th.secondary(`[${yes}/${no}] (default: ${def})`)} `
+    `${th.primary(opts.message)} ${th.secondary(`[${yes}/${no}] (default: ${def})`)} `,
   );
   if (!res) return !!opts.default;
   return /^y/i.test(res.trim());

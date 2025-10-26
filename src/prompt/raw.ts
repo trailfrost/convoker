@@ -5,7 +5,7 @@ const isDeno = typeof Deno !== "undefined" && !!Deno.stdin;
 export async function readLine(
   message = "",
   def?: string,
-  opts?: { masked?: boolean; maskChar?: string; multiline?: boolean }
+  opts?: { masked?: boolean; maskChar?: string; multiline?: boolean },
 ): Promise<string> {
   // Deno
   if (isDeno) {

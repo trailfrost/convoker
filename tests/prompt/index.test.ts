@@ -26,14 +26,14 @@ describe("@/prompt", () => {
   test("text() throws if below minLength", async () => {
     (raw.readLine as any).mockResolvedValue("hi");
     await expect(
-      prompt.text({ message: "Name", minLength: 3 })
+      prompt.text({ message: "Name", minLength: 3 }),
     ).rejects.toThrow("Must be at least 3 characters");
   });
 
   test("text() throws if above maxLength", async () => {
     (raw.readLine as any).mockResolvedValue("abcdef");
     await expect(
-      prompt.text({ message: "Name", maxLength: 5 })
+      prompt.text({ message: "Name", maxLength: 5 }),
     ).rejects.toThrow("Must be at most 5 characters");
   });
 
@@ -43,7 +43,7 @@ describe("@/prompt", () => {
       prompt.text({
         message: "Validate",
         validate: () => false,
-      })
+      }),
     ).rejects.toThrow("Validation failed");
   });
 
@@ -59,7 +59,7 @@ describe("@/prompt", () => {
       .mockResolvedValueOnce("first")
       .mockResolvedValueOnce("second");
     await expect(
-      prompt.password({ message: "Enter", confirm: true })
+      prompt.password({ message: "Enter", confirm: true }),
     ).rejects.toThrow(/Passwords do not match/);
   });
 
@@ -156,7 +156,7 @@ describe("@/prompt", () => {
   test("editor() throws if required and empty", async () => {
     (raw.readLine as any).mockResolvedValue("   ");
     await expect(
-      prompt.editor({ message: "Edit", required: true })
+      prompt.editor({ message: "Edit", required: true }),
     ).rejects.toThrow("Input required.");
   });
 

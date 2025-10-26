@@ -18,8 +18,12 @@
       "default": "./dist/color.js"
     },
     "./prompt": {
-      "types": "./dist/prompt.d.ts",
-      "default": "./dist/prompt.js"
+      "types": "./dist/prompt/index.d.ts",
+      "default": "./dist/prompt/index.js"
+    },
+    "./prompt/raw": {
+      "types": "./dist/prompt/raw.d.ts",
+      "default": "./dist/prompt/raw.d.ts"
     },
     "./error": {
       "types": "./dist/error.d.ts",

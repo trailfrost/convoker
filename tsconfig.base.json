@@ -3,20 +3,17 @@
     "target": "es2020",
     "module": "es2020",
     "moduleResolution": "node",
-    "outDir": "./dist",
     "strict": true,
     "composite": true,
     "esModuleInterop": true,
     "verbatimModuleSyntax": true,
-    "declaration": true,
     "skipLibCheck": true,
+    "noEmit": true,
 
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"],
       "@test/*": ["./tests/*"]
     }
-  },
-  "include": ["src", "env.d.ts"],
-  "exclude": ["src/tests"]
+  }
 }

@@ -1,16 +1,31 @@
+/**
+ * If the runtime is Node.js.
+ */
 export const isNode =
   typeof process !== "undefined" &&
   process.versions != null &&
   process.versions.node != null;
 
+/**
+ * If the runtime is Deno.
+ */
 export const isDeno =
   typeof Deno !== "undefined" && typeof Deno.version?.deno === "string";
 
+/**
+ * If the runtime is Bun.
+ */
 export const isBun =
   typeof Bun !== "undefined" && typeof Bun.version === "string";
 
+/**
+ * All TypeScript primitive types.
+ */
 type Primitive = string | number | boolean | symbol | null | undefined | bigint;
 
+/**
+ * Merges two objects deeply.
+ */
 export type DeepMerge<T, U> = T extends Primitive
   ? U
   : U extends Primitive
@@ -33,6 +48,11 @@ export type DeepMerge<T, U> = T extends Primitive
           : U
         : U;
 
+/**
+ * Checks if a value is a plain object.
+ * @param value The value to check.
+ * @returns If the value is a plain object.
+ */
 function isPlainObject(value: any): value is Record<string, any> {
   return (
     value !== null &&
@@ -41,6 +61,12 @@ function isPlainObject(value: any): value is Record<string, any> {
   );
 }
 
+/**
+ * Merges two objects deeply.
+ * @param source The source object.
+ * @param target The target object.
+ * @returns The merged objects.
+ */
 export function merge<T, U>(source: T, target: U): DeepMerge<T, U> {
   if (Array.isArray(source) && Array.isArray(target)) {
     // Replace arrays

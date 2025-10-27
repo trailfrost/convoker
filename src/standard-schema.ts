@@ -74,6 +74,12 @@ export declare namespace StandardSchemaV1 {
   >["output"];
 }
 
+/**
+ * Validates a value.
+ * @param entry The Standard Schema validator.
+ * @param value The value to validate.
+ * @returns The validated value.
+ */
 export async function validate<T extends StandardSchemaV1<any, any>>(
   entry: T,
   value: any,

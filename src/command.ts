@@ -16,85 +16,204 @@ import {
   type Input,
 } from "./input";
 
+/**
+ * What the command is an alias for.
+ */
 export interface CommandAlias<T extends Input = Input> {
+  /**
+   * A pointer to the command.
+   */
   command: Command<T>;
+  /**
+   * The name of the command this is an alias for.
+   */
   alias?: string;
 }
 
+/**
+ * The result of the `Command.parse` function.
+ */
 export interface ParseResult<T extends Input> {
+  /**
+   * A pointer to the command to run.
+   */
   command: Command<T>;
+  /**
+   * The input to pass into the command.
+   */
   input: InferInput<T>;
+  /**
+   * Errors collected during parsing.
+   */
   errors: LunarCLIError[];
+  /**
+   * If this should result in displaying the version of the command.
+   */
   isVersion: boolean;
+  /**
+   * If this should result in displaying a help screen.
+   */
   isHelp: boolean;
 }
 
+/**
+ * Command action function.
+ */
 export type ActionFn<T extends Input> = (
   input: InferInput<T>,
 ) => void | Promise<void>;
 
+/**
+ * Command error handler.
+ */
 export type ErrorFn<T extends Input> = (
   command: Command<T>,
   errors: Error[],
   input: Partial<InferInput<T>>,
 ) => void | Promise<void>;
 
+/**
+ * Builder for commands.
+ */
 export type Builder = (c: Command<any>) => Command<any> | void;
 
+/**
+ * An input map entry.
+ */
 interface MapEntry {
+  /**
+   * The key of the map entry.
+   */
   key: string;
+  /**
+   * The value of the map entry.
+   */
   value: Option<any, any, any> | Positional<any, any, any>;
 }
 
+/**
+ * A command.
+ */
 export class Command<T extends Input = Input> {
+  /**
+   * The names (aliases) of this command.
+   */
   $names: string[];
+  /**
+   * The description of this command.
+   */
   $description: string | undefined;
+  /**
+   * The theme of this command
+   */
   $theme: Theme | undefined;
+  /**
+   * The version of this command.
+   */
   $version: string | undefined;
+  /**
+   * The children of this command.
+   */
   $children: Map<string, CommandAlias> = new Map();
+  /**
+   * The parent of this command.
+   */
   $parent: Command<any> | undefined;
+  /**
+   * If this command allows unknown options.
+   */
   $allowUnknownOptions: boolean = false;
-
+  /**
+   * The input this command takes.
+   */
   $input: T = {} as T;
+  /**
+   * The action function of this command.
+   */
   $fn: ActionFn<T> | undefined = undefined;
+  /**
+   * The error handler of this command.
+   */
   $errorFn: ErrorFn<T> | undefined = undefined;
 
+  /**
+   * Creates a new command.
+   * @param names The names (aliases).
+   * @param desc The description.
+   * @param version The version.
+   */
   constructor(names: string | string[], desc?: string, version?: string) {
     this.$names = Array.isArray(names) ? names : [names];
     this.$description = desc;
     this.$version = version;
   }
 
-  alias(...aliases: string[]) {
+  /**
+   * Adds a set of aliases to this command.
+   * @param aliases The aliases to add.
+   * @returns this
+   */
+  alias(...aliases: string[]): this {
     this.$names.concat(aliases);
     this.$parent?.add(this);
+    return this;
   }
 
+  /**
+   * Adds a description to this command.
+   * @param desc The description.
+   * @returns this
+   */
   description(desc: string): this {
     this.$description = desc;
     return this;
   }
 
+  /**
+   * Adds a version to this command.
+   * @param version The version.
+   * @returns this
+   */
   version(version: string): this {
     this.$version = version;
     return this;
   }
 
+  /**
+   * Sets the input for this command.
+   * @param version The input.
+   * @returns this
+   */
   input<TInput extends Input>(input: TInput): Command<TInput> {
     this.$input = input as any;
     return this as any;
   }
 
+  /**
+   * Sets the action function for this command.
+   * @param fn The action.
+   * @returns this
+   */
   action(fn: ActionFn<T>): this {
     this.$fn = fn;
     return this;
   }
 
-  help(fn: ErrorFn<T>): this {
+  /**
+   * Sets the error function for this command.
+   * @param fn The error handler.
+   * @returns this
+   */
+  error(fn: ErrorFn<T>): this {
     this.$errorFn = fn;
     return this;
   }
 
+  /**
+   * Adds an existing command to this.
+   * @param command The command.
+   * @returns this
+   */
   add(command: Command<any>): this {
     command.$parent = this;
     const alias = { command, alias: command.$names[0] };
@@ -105,7 +224,18 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
+  /**
+   * Creates a new subcommand and adds it.
+   * @param names The aliases of the subcommand.
+   * @param builder A builder to create the command.
+   */
   subCommand(names: string | string[], builder: Builder): this;
+  /**
+   * Creates a new subcommand and adds it.
+   * @param names The aliases of the subcommand.
+   * @param desc The description of the subcommand.
+   * @param version The version of the subcommand.
+   */
   subCommand(
     names: string | string[],
     desc?: string,
@@ -129,11 +259,20 @@ export class Command<T extends Input = Input> {
     return command;
   }
 
+  /**
+   * Allows unknown options.
+   * @returns this
+   */
   allowUnknownOptions(): this {
     this.$allowUnknownOptions = true;
     return this;
   }
 
+  /**
+   * Parses a set of command-line arguments.
+   * @param argv The arguments to parse.
+   * @returns A parse result.
+   */
   async parse(argv: string[]): Promise<ParseResult<T>> {
     // eslint-disable-next-line -- alias to this is necessary to go through the tree
     let command: Command<any> = this;
@@ -306,6 +445,10 @@ export class Command<T extends Input = Input> {
     return map;
   }
 
+  /**
+   * Gets the full command path (name including parents).
+   * @returns The full command path.
+   */
   fullCommandPath(): string {
     const names: string[] = [];
     // eslint-disable-next-line -- necessary for traversing up the tree
@@ -317,7 +460,11 @@ export class Command<T extends Input = Input> {
     return names.join(" ");
   }
 
-  private defaultErrorScreen(errors: Error[]) {
+  /**
+   * The default error screen.
+   * @param errors The errors.
+   */
+  defaultErrorScreen(errors: Error[]) {
     let printHelpScreen = false;
     const nonCliErrors: Error[] = [];
 
@@ -407,7 +554,13 @@ export class Command<T extends Input = Input> {
     }
   }
 
-  async handleError(
+  /**
+   * Handles a set of errors.
+   * @param errors The errors to handle.
+   * @param input The parsed input, if possible.
+   * @returns this
+   */
+  async handleErrors(
     errors: Error[],
     input?: Partial<InferInput<T>>,
   ): Promise<this> {
@@ -425,6 +578,11 @@ export class Command<T extends Input = Input> {
     return this;
   }
 
+  /**
+   * Runs a command.
+   * @param argv The arguments to run the command with. Defaults to your runtime's `argv` equivalent.
+   * @returns this
+   */
   async run(argv?: string[]): Promise<this> {
     if (!argv) {
       argv =
@@ -437,7 +595,7 @@ export class Command<T extends Input = Input> {
 
     const result = await this.parse(argv);
     if (result.isHelp) {
-      result.command.handleError([new HelpAskedError(result.command)]);
+      result.command.handleErrors([new HelpAskedError(result.command)]);
       return this;
     } else if (result.isVersion) {
       console.log(
@@ -448,9 +606,9 @@ export class Command<T extends Input = Input> {
 
     try {
       if (result.errors.length > 0) {
-        await result.command.handleError(result.errors, result.input);
+        await result.command.handleErrors(result.errors, result.input);
       } else if (!result.command.$fn) {
-        await result.command.handleError(
+        await result.command.handleErrors(
           [new HelpAskedError(result.command), ...result.errors],
           result.input,
         );
@@ -463,7 +621,7 @@ export class Command<T extends Input = Input> {
           "[lunarcli] an error that is not instance of `Error` was thrown. this may cause undefined behavior.",
         );
       }
-      await result.command.handleError([e as Error]);
+      await result.command.handleErrors([e as Error]);
     }
     return this;
   }

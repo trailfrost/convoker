@@ -1,13 +1,32 @@
 import { DEFAULT_THEME, type Theme } from "./color";
 import { merge, isNode, isDeno, isBun } from "./utils";
 
+/**
+ * The logger configuration.
+ */
 export interface LogConfig {
+  /**
+   * The format to print as.
+   */
   format: "text" | "json" | "xml" | "yaml" | "csv";
+  /**
+   * Standard output.
+   */
   stdout: WritableStream<string>;
+  /**
+   * Standard error.
+   */
   stderr: WritableStream<string>;
+  /**
+   * Standard input.
+   */
   stdin: ReadableStream<string>;
 }
 
+/**
+ * Gets the default stdout, in a cross-runtime way.
+ * @returns The default stdout.
+ */
 async function getDefaultStdout() {
   if (isNode && process.stdout?.writable) {
     const { Writable } = await import("node:stream");
@@ -30,6 +49,10 @@ async function getDefaultStdout() {
   });
 }
 
+/**
+ * Gets the default stderr, in a cross-runtime way.
+ * @returns The default stderr.
+ */
 async function getDefaultStderr() {
   if (isNode && process.stderr?.writable) {
     const { Writable } = await import("node:stream");
@@ -52,6 +75,10 @@ async function getDefaultStderr() {
   });
 }
 
+/**
+ * Gets the default stdin, in a cross-runtime way.
+ * @returns The default stdin.
+ */
 async function getDefaultStdin() {
   if (isNode && process.stdin?.readable) {
     const { Readable } = await import("node:stream");
@@ -75,10 +102,18 @@ async function getDefaultStdin() {
 let theme: Theme = DEFAULT_THEME;
 let config: LogConfig = undefined!;
 
+/**
+ * Sets a new theme.
+ * @param t The theme.
+ */
 export function setTheme(t: Theme) {
   theme = t;
 }
 
+/**
+ * Sets new configuration.
+ * @param c The config.
+ */
 export async function setConfig(c: Partial<LogConfig>) {
   config = merge(
     {
@@ -91,11 +126,20 @@ export async function setConfig(c: Partial<LogConfig>) {
   ) as LogConfig;
 }
 
+/**
+ * Sets default configuration.
+ */
 export async function setup() {
   await setConfig({});
 }
 
-function formatMessage(level: string, ...msgs: any[]): string {
+/**
+ * Formats a message to the correct format.
+ * @param level The level of mesage.
+ * @param msgs The messages to format.
+ * @returns The formatted message.
+ */
+function formatMessages(level: string, ...msgs: any[]): string {
   const timestamp = new Date().toISOString();
   const msg = msgs
     .map((m) => (typeof m === "string" ? m : JSON.stringify(m, null, 2)))
@@ -122,6 +166,12 @@ function formatMessage(level: string, ...msgs: any[]): string {
   }
 }
 
+/**
+ * Colorizes text.
+ * @param level The log level.
+ * @param text The text to colorize.
+ * @returns The colorized text.
+ */
 function colorize(level: string, text: string): string {
   switch (level) {
     case "trace":
@@ -141,6 +191,11 @@ function colorize(level: string, text: string): string {
   }
 }
 
+/**
+ * Writes to a stream.
+ * @param stream The stream to write to.
+ * @param msg The message to write.
+ */
 async function writeToStream(stream: WritableStream<string>, msg: string) {
   const writer = stream.getWriter();
   try {
@@ -150,32 +205,52 @@ async function writeToStream(stream: WritableStream<string>, msg: string) {
   }
 }
 
+/**
+ * Prints debug information.
+ * @param msgs The messages to write.
+ */
 export async function trace(...msgs: any[]) {
-  const formatted = formatMessage("trace", ...msgs);
+  const formatted = formatMessages("trace", ...msgs);
   const colored = colorize("trace", formatted);
   await writeToStream(config.stdout, colored);
 }
 
+/**
+ * Prints information.
+ * @param msgs The messages to write.
+ */
 export async function info(...msgs: any[]) {
-  const formatted = formatMessage("info", ...msgs);
+  const formatted = formatMessages("info", ...msgs);
   const colored = colorize("info", formatted);
   await writeToStream(config.stdout, colored);
 }
 
+/**
+ * Prints warnings.
+ * @param msgs The messages to write.
+ */
 export async function warn(...msgs: any[]) {
-  const formatted = formatMessage("warn", ...msgs);
+  const formatted = formatMessages("warn", ...msgs);
   const colored = colorize("warn", formatted);
   await writeToStream(config.stdout, colored);
 }
 
+/**
+ * Prints errors.
+ * @param msgs The messages to write.
+ */
 export async function error(...msgs: any[]) {
-  const formatted = formatMessage("error", ...msgs);
+  const formatted = formatMessages("error", ...msgs);
   const colored = colorize("error", formatted);
   await writeToStream(config.stderr, colored);
 }
 
+/**
+ * Prints errors and exits.
+ * @param msgs The messages to write.
+ */
 export async function fatal(...msgs: any[]) {
-  const formatted = formatMessage("fatal", ...msgs);
+  const formatted = formatMessages("fatal", ...msgs);
   const colored = colorize("fatal", formatted);
   await writeToStream(config.stderr, colored);
 

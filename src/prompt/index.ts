@@ -1,45 +1,116 @@
 import { DEFAULT_THEME, type Theme } from "@/color";
-import type { StandardSchemaV1 } from "@/standard-schema";
+import { validate, type StandardSchemaV1 } from "@/standard-schema";
+import { InputValidationError } from "@/error";
+import { isDeno, isNode, isBun } from "@/utils";
 import * as raw from "./raw";
 
 let theme: Theme = DEFAULT_THEME;
 
+/**
+ * Sets the theme of the prompts.
+ * @param t The new theme.
+ */
 export function setTheme(t: Theme) {
   theme = t;
 }
 
+/**
+ * Base options for prompts.
+ */
 export interface BaseOpts<T> {
+  /**
+   * The message of the prompt.
+   */
   message: string;
+  /**
+   * An `AbortSignal` to cancel the prompt.
+   */
   signal?: AbortSignal;
+  /**
+   * The default value.
+   */
   default?: T;
+  /**
+   * The theme of the prompt.
+   */
   theme?: Theme;
-  validate?: (value: T) => StandardSchemaV1<any, T> | boolean | T;
+  /**
+   * A validator function, or a Standard Schema validator.
+   */
+  validate?: StandardSchemaV1<any, T> | ((value: T) => boolean | T);
 }
 
+// -- text -- //
+
+/**
+ * Options for text input.
+ */
 export interface TextOpts extends BaseOpts<string> {
+  /**
+   * A placeholder, displayed when the user hasn't typed anything yet.
+   */
   placeholder?: string;
+  /**
+   * Minimum length of the input.
+   */
   minLength?: number;
+  /**
+   * Maximum length of the input.
+   */
   maxLength?: number;
 }
 
+/**
+ * Prompts the user for text input.
+ * @param opts Options for text input.
+ * @returns The text the user typed in, or the default.
+ */
 export async function text(opts: TextOpts): Promise<string> {
   const th = opts.theme ?? theme;
   const message = th.primary(opts.message) + " ";
   const answer = await raw.readLine(message, opts.default);
+
   if (opts.minLength && answer.length < opts.minLength)
-    throw new Error(`Must be at least ${opts.minLength} characters`);
+    throw new InputValidationError([
+      `Must be at least ${opts.minLength} characters`,
+    ]);
   if (opts.maxLength && answer.length > opts.maxLength)
-    throw new Error(`Must be at most ${opts.maxLength} characters`);
-  if (opts.validate && !opts.validate(answer))
-    throw new Error("Validation failed");
+    throw new InputValidationError([
+      `Must be at most ${opts.maxLength} characters`,
+    ]);
+
+  if (typeof opts.validate === "function") {
+    if (!opts.validate(answer))
+      throw new InputValidationError([
+        "Validation function returned a falsy value",
+      ]);
+  } else if (opts.validate) {
+    validate(opts.validate, answer);
+  }
   return answer;
 }
 
+// -- password -- //
+
+/**
+ * Options for password input.
+ */
 export interface PasswordOpts extends TextOpts {
+  /**
+   * The mask for the password input.
+   */
   mask?: string;
+  /**
+   * If the user should be asked to confirm the password, by typing it again.
+   */
   confirm?: boolean;
 }
 
+/**
+ * Prompts the user for a password.
+ * @param opts Options for password input.
+ * @returns The password.
+ */
 export async function password(opts: PasswordOpts): Promise<string> {
   const th = opts.theme ?? theme;
   const first = await raw.readLine(th.primary(opts.message) + " ", undefined, {
@@ -60,18 +131,49 @@ export async function password(opts: PasswordOpts): Promise<string> {
   return first;
 }
 
+// -- select -- //
+
+/**
+ * An option for select input.
+ */
 export interface SelectOption<T> {
+  /**
+   * The label (what gets displayed) of the select option.
+   */
   label: string;
+  /**
+   * The value (what gets returned) of the select option.
+   */
   value: T;
+  /**
+   * A description of the option.
+   */
   hint?: string;
+  /**
+   * If this option is disabled.
+   */
   disabled?: boolean;
 }
 
+/**
+ * Options for select input.
+ */
 export interface SelectOpts<T> extends BaseOpts<T> {
+  /**
+   * Every option the user can pick from.
+   */
   options: SelectOption<T>[];
+  /**
+   * The initial option selected.
+   */
   initialIndex?: number;
 }
 
+/**
+ * Prompts the user to select a single option.
+ * @param opts Options for select input.
+ * @returns The selected option's value.
+ */
 export async function select<T>(opts: SelectOpts<T>): Promise<T> {
   const th = opts.theme ?? theme;
   const options = opts.options;
@@ -110,6 +212,11 @@ export async function select<T>(opts: SelectOpts<T>): Promise<T> {
   }
 }
 
+/**
+ * Prompts the user to select multiple options.
+ * @param opts Options for select input.
+ * @returns The selected options.
+ */
 export async function multiselect<T>(opts: SelectOpts<T>): Promise<T[]> {
   const th = opts.theme ?? theme;
   const options = opts.options;
@@ -145,13 +252,37 @@ export async function multiselect<T>(opts: SelectOpts<T>): Promise<T[]> {
   }
 }
 
+// -- search -- //
+
+/**
+ * Options for search input.
+ */
 export interface SearchOpts<T> extends BaseOpts<T> {
+  /**
+   * Every option the user can search through.
+   */
   options: SelectOption<T>[];
+  /**
+   * Placeholder for the search input.
+   */
   placeholder?: string;
+  /**
+   * Minimum length for a query string.
+   */
   minQueryLength?: number;
+  /**
+   * Filters a single option.
+   * @param query The search query.
+   * @param option The option to filter.
+   */
   filter?(query: string, option: SelectOption<T>): boolean;
 }
 
+/**
+ * Prompts the user to search through a list of options.
+ * @param opts Options for search input.
+ * @returns The selected option.
+ */
 export async function search<T>(opts: SearchOpts<T>): Promise<T> {
   const th = opts.theme ?? theme;
   let query = "";
@@ -171,11 +302,27 @@ export async function search<T>(opts: SearchOpts<T>): Promise<T> {
   }
 }
 
+// -- confirm -- //
+
+/**
+ * Options for confirm input.
+ */
 export interface ConfirmOpts extends BaseOpts<boolean> {
+  /**
+   * What gets displayed for the Yes option.
+   */
   yesLabel?: string;
+  /**
+   * What gets displayed for the No option.
+   */
   noLabel?: string;
 }
 
+/**
+ * Prompts the user to confirm an action.
+ * @param opts Options for confirm input.
+ * @returns If the user picked Yes.
+ */
 export async function confirm(opts: ConfirmOpts): Promise<boolean> {
   const th = opts.theme ?? theme;
   const yes = opts.yesLabel ?? "y";
@@ -188,19 +335,126 @@ export async function confirm(opts: ConfirmOpts): Promise<boolean> {
   return /^y/i.test(res.trim());
 }
 
+// -- editor -- //
+
+/**
+ * Options for opening the system editor.
+ */
 export interface EditorOpts extends BaseOpts<string> {
+  /**
+   * The initial value.
+   */
   initial?: string;
+  /**
+   * The language of the value.
+   */
   language?: string;
+  /**
+   * If the input is required for continuing or not.
+   */
   required?: boolean;
 }
 
+/**
+ * Opens the system editor, or asks for input in the terminal as fallback.
+ * @param opts Options for opening the system editor.
+ * @returns The result of the system editor.
+ */
 export async function editor(opts: EditorOpts): Promise<string> {
-  const th = opts.theme ?? theme;
-  console.log(th.primary(opts.message));
-  console.log(th.secondary("Enter text below, then press Ctrl+D when done."));
-  const value = await raw.readLine("", opts.initial, { multiline: true });
-  if (opts.required && !value.trim()) throw new Error("Input required.");
-  return value;
+  const th = opts.theme ?? {
+    primary: (s: string) => s,
+    secondary: (s: string) => s,
+  };
+
+  console.log(th.primary(opts.message ?? "Please enter text:"));
+  console.log(th.secondary("Press Ctrl+D (or save & close editor) when done."));
+
+  try {
+    const result = await openSystemEditor(opts.initial ?? "");
+    if (opts.required && !result.trim()) throw new Error("Input required.");
+    return result;
+  } catch {
+    // fallback: cross-runtime multiline input
+    const value = await raw.readLine("", opts.initial, { multiline: true });
+    if (opts.required && !value.trim()) throw new Error("Input required.");
+    return value;
+  }
+}
+
+/**
+ * Opens the system editor on a temporary file.
+ * @param initial Initial contents of the file.
+ * @returns The contents of the file after saving.
+ */
+async function openSystemEditor(initial: string): Promise<string> {
+  const tmpFile = `edit-${Date.now()}.txt`;
+
+  if (isDeno) {
+    const tmpDir = Deno.env.get("TMPDIR") ?? "/tmp";
+    const path = `${tmpDir}/${tmpFile}`;
+    await Deno.writeTextFile(path, initial ?? "");
+
+    const editor = Deno.env.get("EDITOR") ?? "vi";
+    const p = new Deno.Command(editor, {
+      args: [path],
+      stdin: "inherit",
+      stdout: "inherit",
+      stderr: "inherit",
+    }).spawn();
+
+    const status = await p.status;
+    if (!status.success)
+      throw new Error(`${editor} exited with ${status.code}`);
+
+    const text = await Deno.readTextFile(path);
+    await Deno.remove(path).catch(() => {});
+    return text;
+  }
+
+  if (isBun) {
+    const { $ } = await import("bun");
+    const path = `/tmp/${tmpFile}`;
+    await Bun.write(path, initial ?? "");
+    const editor = process.env.EDITOR ?? "vi";
+    await $`${editor} ${path}`;
+    const text = await Bun.file(path).text();
+    await Bun.write(path, ""); // or remove if supported
+    return text;
+  }
+
+  if (isNode) {
+    const { tmpdir } = await import("node:os");
+    const { join } = await import("node:path");
+    const { promises: fs } = await import("node:fs");
+    const { spawn } = await import("node:child_process");
+
+    const path = join(tmpdir(), tmpFile);
+    await fs.writeFile(path, initial ?? "", "utf8");
+
+    const editor =
+      process.env.EDITOR ||
+      process.env.VISUAL ||
+      (process.platform === "win32" ? "notepad" : "vi");
+
+    return new Promise((resolve, reject) => {
+      const child = spawn(editor, [path], { stdio: "inherit" });
+      child.on("exit", async (code: number) => {
+        if (code !== 0) {
+          reject(new Error(`${editor} exited with code ${code}`));
+          return;
+        }
+        try {
+          const data = await fs.readFile(path, "utf8");
+          await fs.unlink(path).catch(() => {});
+          resolve(data);
+        } catch (err) {
+          reject(err);
+        }
+      });
+    });
+  }
+
+  throw new Error("Unsupported runtime for system editor.");
 }
 
 export { raw };

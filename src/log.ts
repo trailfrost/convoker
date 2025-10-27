@@ -1,4 +1,5 @@
-import { merge, DEFAULT_THEME, type Theme } from "./color";
+import { DEFAULT_THEME, type Theme } from "./color";
+import { merge, isNode, isDeno, isBun } from "./utils";
 
 export interface LogConfig {
   format: "text" | "json" | "xml" | "yaml" | "csv";
@@ -6,16 +7,6 @@ export interface LogConfig {
   stderr: WritableStream<string>;
   stdin: ReadableStream<string>;
 }
-
-const isNode =
-  typeof process !== "undefined" &&
-  process.versions != null &&
-  process.versions.node != null;
-
-const isDeno =
-  typeof Deno !== "undefined" && typeof Deno.version?.deno === "string";
-
-const isBun = typeof Bun !== "undefined" && typeof Bun.version === "string";
 
 async function getDefaultStdout() {
   if (isNode && process.stdout?.writable) {

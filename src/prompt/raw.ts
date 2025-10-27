@@ -1,7 +1,12 @@
-const isDeno = typeof Deno !== "undefined" && !!Deno.stdin;
-// const isBun = typeof Bun !== "undefined";
-// const isNode = !isDeno && !isBun;
+import { isDeno } from "@/utils";
 
+/**
+ * Reads a line from standard input.
+ * @param message The message.
+ * @param def Default value.
+ * @param opts Options for reading a line.
+ * @returns The line that was read.
+ */
 export async function readLine(
   message = "",
   def?: string,
@@ -52,6 +57,10 @@ export async function readLine(
   });
 }
 
+/**
+ * Reads a single key from stdin.
+ * @returns The key that was read.
+ */
 export async function readKey(): Promise<string> {
   return new Promise((resolve) => {
     const stdin = process.stdin;
@@ -72,15 +81,27 @@ export async function readKey(): Promise<string> {
   });
 }
 
+/**
+ * Clears `lines` amount of lines.
+ * @param lines Amount of lines to clear.
+ */
 export function clearLines(lines = 1) {
   for (let i = 0; i < lines; i++) process.stdout.write("\x1b[2K\x1b[1A");
   process.stdout.write("\x1b[2K\r");
 }
 
+/**
+ * Moves the cursor up `n` times.
+ * @param n The amount of steps to move.
+ */
 export function cursorUp(n = 1) {
   process.stdout.write(`\x1b[${n}A`);
 }
 
+/**
+ * Moves the cursor down `n` times.
+ * @param n The amount of steps to move.
+ */
 export function cursorDown(n = 1) {
   process.stdout.write(`\x1b[${n}B`);
 }

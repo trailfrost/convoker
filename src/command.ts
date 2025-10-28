@@ -2,10 +2,11 @@ import { gray, cyan, bold, type Theme } from "./color";
 import { setTheme as setPromptTheme } from "./prompt";
 import { setTheme as setLogTheme } from "./log";
 import {
-  LunarCLIError,
+  ConvokerError,
   HelpAskedError,
   MissingRequiredArgumentError,
   MissingRequiredOptionError,
+  TooManyArgumentsError,
   UnknownOptionError,
 } from "./error";
 import {
@@ -45,7 +46,7 @@ export interface ParseResult<T extends Input> {
   /**
    * Errors collected during parsing.
    */
-  errors: LunarCLIError[];
+  errors: ConvokerError[];
   /**
    * If this should result in displaying the version of the command.
    */
@@ -123,6 +124,10 @@ export class Command<T extends Input = Input> {
    * If this command allows unknown options.
    */
   $allowUnknownOptions: boolean = false;
+  /**
+   * If you should be able to surpass the amount of positional arguments defined in the input.
+   */
+  $allowSurpassArgLimit: boolean = false;
   /**
    * The input this command takes.
    */
@@ -282,7 +287,7 @@ export class Command<T extends Input = Input> {
     const args: string[] = [];
     const opts: Record<string, string> = {};
 
-    const errors: LunarCLIError[] = [];
+    const errors: ConvokerError[] = [];
     const map = command.buildInputMap();
 
     function getOption(key: string, isSpecial?: boolean) {
@@ -378,14 +383,28 @@ export class Command<T extends Input = Input> {
     let index = 0;
     for (const key in command.$input) {
       const entry = command.$input[key];
-      let rawValue: string | undefined;
+      let rawValue: string | string[] | undefined;
 
       if (entry instanceof Positional) {
-        rawValue = args[index++];
+        if (entry.$list) {
+          // Consume all remaining args
+          rawValue = args.slice(index);
+          index = args.length; // move index to the end
+          if (!command.$allowSurpassArgLimit && rawValue.length === 0) {
+            throw new TooManyArgumentsError(command);
+          }
+        } else {
+          rawValue = args[index++];
+          if (index > args.length && !command.$allowSurpassArgLimit) {
+            throw new TooManyArgumentsError(command);
+          }
+        }
       } else {
         for (const name of entry.$names) {
           if (opts[name] !== undefined) {
-            rawValue = opts[name];
+            rawValue = entry.$list
+              ? opts[name]
+              : opts[name].split(entry.$separator ?? ",");
             break;
           }
         }
@@ -469,7 +488,7 @@ export class Command<T extends Input = Input> {
     const nonCliErrors: Error[] = [];
 
     for (const error of errors) {
-      if (error instanceof LunarCLIError) {
+      if (error instanceof ConvokerError) {
         if (!(error instanceof HelpAskedError)) error.print();
         printHelpScreen = true;
       } else {
@@ -618,7 +637,7 @@ export class Command<T extends Input = Input> {
     } catch (e) {
       if (!(e instanceof Error)) {
         console.warn(
-          "[lunarcli] an error that is not instance of `Error` was thrown. this may cause undefined behavior.",
+          "[convoker] an error that is not instance of `Error` was thrown. this may cause undefined behavior.",
         );
       }
       await result.command.handleErrors([e as Error]);

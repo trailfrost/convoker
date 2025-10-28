@@ -1,9 +1,9 @@
-# LunarCLI
+# Convoker
 
 A simple, type safe CLI library for TypeScript.
 
 ```ts
-import { i, Command } from "lunarcli";
+import { i, Command } from "convoker";
 
 const program = new Command("calc").description("A basic calculator.");
 

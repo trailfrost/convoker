@@ -21,16 +21,16 @@ export class InputValidationError extends Error {
 }
 
 /**
- * A LunarCLI-related error. These are usually handled by default.
+ * A Convoker-related error. These are usually handled by default.
  */
-export class LunarCLIError extends Error {
+export class ConvokerError extends Error {
   /**
    * The command this error happened on.
    */
   command: Command<any>;
 
   /**
-   * Creates a new LunarCLI error.
+   * Creates a new Convoker error.
    * @param message The message.
    * @param command The command.
    */
@@ -50,7 +50,7 @@ export class LunarCLIError extends Error {
 /**
  * When the user asks for help.
  */
-export class HelpAskedError extends LunarCLIError {
+export class HelpAskedError extends ConvokerError {
   /**
    * Creates a new help asked error.
    * @param command The command.
@@ -63,8 +63,7 @@ export class HelpAskedError extends LunarCLIError {
 /**
  * When you pass too many arguments.
  */
-// TODO this isn't thrown at all
-export class TooManyArgumentsError extends LunarCLIError {
+export class TooManyArgumentsError extends ConvokerError {
   /**
    * Creates a new too many arguments error.
    * @param command The command.
@@ -77,7 +76,7 @@ export class TooManyArgumentsError extends LunarCLIError {
 /**
  * When you pass an unknown option, when unknown options aren't allowed.
  */
-export class UnknownOptionError extends LunarCLIError {
+export class UnknownOptionError extends ConvokerError {
   /**
    * The option key.
    */
@@ -97,7 +96,7 @@ export class UnknownOptionError extends LunarCLIError {
 /**
  * When a required option is missing.
  */
-export class MissingRequiredOptionError extends LunarCLIError {
+export class MissingRequiredOptionError extends ConvokerError {
   /**
    * The option key.
    */
@@ -124,7 +123,7 @@ export class MissingRequiredOptionError extends LunarCLIError {
   }
 }
 
-export class MissingRequiredArgumentError extends LunarCLIError {
+export class MissingRequiredArgumentError extends ConvokerError {
   /**
    * The argument key.
    */

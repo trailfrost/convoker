@@ -28,7 +28,7 @@ const entries = Object.entries(pkg.exports)
       acc[name] = path;
       return acc;
     },
-    {} as Record<string, string>
+    {} as Record<string, string>,
   );
 
 export default defineConfig({

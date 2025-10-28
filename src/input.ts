@@ -64,24 +64,34 @@ export type InferEntry<T> = T extends {
  */
 export async function convert<TKind extends Kind>(
   kind: TKind,
-  value: string,
-): Promise<TypeOf<TKind>> {
-  // Basic kinds
-  if (typeof kind === "string") {
-    switch (kind) {
-      case "boolean":
-        return (value === "true") as any;
-      case "bigint":
-        return BigInt(value) as any;
-      case "number":
-        return parseFloat(value) as any;
-      case "string":
-        return value as any;
+  value: string | string[],
+): Promise<TypeOf<TKind> | TypeOf<TKind>[]> {
+  // Helper for single value conversion
+  async function convertOne(val: string): Promise<TypeOf<TKind>> {
+    if (typeof kind === "string") {
+      switch (kind) {
+        case "boolean":
+          return (val === "true") as any;
+        case "bigint":
+          return BigInt(val) as any;
+        case "number":
+          return parseFloat(val) as any;
+        case "string":
+          return val as any;
+      }
     }
+    // Otherwise, Standard Schema
+    return validate(kind, val);
   }
 
-  // Otherwise, Standard Schema
-  return validate(kind, value);
+  // If list → map each item
+  if (Array.isArray(value)) {
+    const results = await Promise.all(value.map((v) => convertOne(v)));
+    return results as any;
+  }
+
+  // Single value case
+  return convertOne(value);
 }
 
 /**
@@ -116,6 +126,10 @@ export class Option<
    * If this option is a list.
    */
   $list: TList = false as TList;
+  /**
+   * A separator if this option is a list.
+   */
+  $separator: string | undefined;
 
   /**
    * Creates a new option.
@@ -131,8 +145,9 @@ export class Option<
    * Makes this option a list.
    * @returns this
    */
-  list(): Option<TKind, TRequired, true> {
+  list(separator?: string): Option<TKind, TRequired, true> {
     this.$list = true as TList;
+    this.$separator = separator ?? this.$separator;
     return this as any;
   }
 

@@ -62,7 +62,15 @@ export interface ParseResult<T extends Input> {
  */
 export type ActionFn<T extends Input> = (
   input: InferInput<T>,
-) => void | Promise<void>;
+) => any | Promise<any>;
+
+/**
+ * Command middleware function.
+ */
+export type MiddlewareFn<T extends Input = Input> = (
+  input: InferInput<T>,
+  next: () => Promise<any>,
+) => any | Promise<any>;
 
 /**
  * Command error handler.
@@ -137,6 +145,10 @@ export class Command<T extends Input = Input> {
    */
   $fn: ActionFn<T> | undefined = undefined;
   /**
+   * The middlewares associated with this command.
+   */
+  $middlewares: MiddlewareFn<T>[] = [];
+  /**
    * The error handler of this command.
    */
   $errorFn: ErrorFn<T> | undefined = undefined;
@@ -192,6 +204,16 @@ export class Command<T extends Input = Input> {
   input<TInput extends Input>(input: TInput): Command<TInput> {
     this.$input = input as any;
     return this as any;
+  }
+
+  /**
+   * Adds a chain of middlewares.
+   * @param fns The middlewares to use.
+   * @returns this
+   */
+  use(...fns: MiddlewareFn<T>[]): this {
+    this.$middlewares.push(...fns);
+    return this;
   }
 
   /**
@@ -632,7 +654,16 @@ export class Command<T extends Input = Input> {
           result.input,
         );
       } else {
-        await result.command.$fn(result.input);
+        const middlewares = collectMiddlewares(result.command);
+        if (middlewares.length > 0) {
+          const runner = compose(middlewares);
+          // finalNext calls the command action with the same input
+          await runner(result.input, async () => {
+            await result.command.$fn?.(result.input);
+          });
+        } else {
+          await result.command.$fn(result.input);
+        }
       }
     } catch (e) {
       if (!(e instanceof Error)) {
@@ -644,4 +675,38 @@ export class Command<T extends Input = Input> {
     }
     return this;
   }
+}
+
+function collectMiddlewares(cmd: Command<any>) {
+  const middlewares: MiddlewareFn<any>[] = [];
+  let current: Command<any> | undefined = cmd;
+  while (current) {
+    if (current.$middlewares.length) {
+      middlewares.unshift(...current.$middlewares);
+    }
+    current = current.$parent;
+  }
+  return middlewares;
+}
+
+function compose(mws: MiddlewareFn<any>[]) {
+  return (input: InferInput<any>, finalNext?: () => Promise<any>) => {
+    let index = -1;
+    const dispatch = (i: number): Promise<any> => {
+      if (i <= index)
+        return Promise.reject(new Error("next() called multiple times"));
+      index = i;
+      const fn = mws[i];
+      if (!fn) {
+        // when middlewares exhausted call finalNext if provided
+        return finalNext ? finalNext() : Promise.resolve();
+      }
+      try {
+        return Promise.resolve(fn(input, () => dispatch(i + 1)));
+      } catch (err) {
+        return Promise.reject(err);
+      }
+    };
+    return dispatch(0);
+  };
 }

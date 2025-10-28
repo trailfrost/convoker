@@ -245,3 +245,125 @@ describe("Nested subcommands", () => {
     expect(helpSpy).toHaveBeenCalled();
   });
 });
+
+describe("Middlewares", () => {
+  let root: Command;
+  let logs: string[];
+
+  beforeEach(() => {
+    root = new Command("root");
+    logs = [];
+  });
+
+  test("runs a single middleware before and after the action", async () => {
+    root
+      .use(async (input, next) => {
+        logs.push("before");
+        await next();
+        logs.push("after");
+      })
+      .action(async () => {
+        logs.push("action");
+      });
+
+    await root.run([]);
+    expect(logs).toEqual(["before", "action", "after"]);
+  });
+
+  test("runs multiple middlewares in order", async () => {
+    root
+      .use(async (input, next) => {
+        logs.push("mw1-start");
+        await next();
+        logs.push("mw1-end");
+      })
+      .use(async (input, next) => {
+        logs.push("mw2-start");
+        await next();
+        logs.push("mw2-end");
+      })
+      .action(async () => {
+        logs.push("action");
+      });
+
+    await root.run([]);
+    expect(logs).toEqual([
+      "mw1-start",
+      "mw2-start",
+      "action",
+      "mw2-end",
+      "mw1-end",
+    ]);
+  });
+
+  test("propagates middlewares from parent to child", async () => {
+    const sub = root.subCommand("sub");
+    root.use(async (input, next) => {
+      logs.push("root-start");
+      await next();
+      logs.push("root-end");
+    });
+    sub
+      .use(async (input, next) => {
+        logs.push("sub-start");
+        await next();
+        logs.push("sub-end");
+      })
+      .action(async () => {
+        logs.push("action");
+      });
+
+    await root.run(["sub"]);
+    expect(logs).toEqual([
+      "root-start",
+      "sub-start",
+      "action",
+      "sub-end",
+      "root-end",
+    ]);
+  });
+
+  test("passes parsed input to middlewares and action", async () => {
+    root.input({
+      name: i.positional("string").required(),
+    });
+    const received: any[] = [];
+
+    root
+      .use(async (input, next) => {
+        received.push({ mw: input.name });
+        await next();
+      })
+      .action(async (input) => {
+        received.push({ action: input.name });
+      });
+
+    await root.run(["Alice"]);
+    expect(received).toEqual([{ mw: "Alice" }, { action: "Alice" }]);
+  });
+
+  test("middleware can short-circuit without calling next()", async () => {
+    const action = vi.fn();
+    root
+      .use(async () => {
+        logs.push("intercept");
+        // intentionally not calling next()
+      })
+      .action(action);
+
+    await root.run([]);
+    expect(logs).toEqual(["intercept"]);
+    expect(action).not.toHaveBeenCalled();
+  });
+
+  test("throws if middleware calls next() twice", async () => {
+    root
+      .use(async (input, next) => {
+        await next();
+        await expect(next()).rejects.toThrow(/next\(\) called multiple times/);
+      })
+      .action(async () => {});
+
+    await root.run([]);
+  });
+});

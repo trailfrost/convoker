@@ -1,6 +1,6 @@
 {
   "name": "convoker",
-  "version": "0.3.0",
+  "version": "0.3.2",
   "description": "A simple, type safe CLI framework for TypeScript.",
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
@@ -22,7 +22,7 @@
       "default": "./dist/color.js"
     },
     "./prompt": {
-      "types": "./dist/prompt.js",
+      "types": "./dist/prompt/index.d.ts",
       "default": "./dist/prompt/index.js"
     },
     "./prompt/raw": {
@@ -37,7 +37,7 @@
   "type": "module",
   "scripts": {
     "test": "vitest tests",
-    "build": "tsc -b && vite build",
+    "build": "tsc -b tsconfig.app.json && tsc-alias -p tsconfig.app.json",
     "format": "prettier --check .",
     "format!": "prettier --write .",
     "lint": "eslint .",
@@ -61,11 +61,10 @@
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "prettier": "^3.6.2",
+    "tsc-alias": "^1.8.16",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.45.0",
     "valibot": "^1.1.0",
-    "vite": "^7.1.12",
-    "vite-plugin-dts": "^4.5.4",
     "vitest": "^3.2.4"
   }
 }

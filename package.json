@@ -1,37 +1,41 @@
 {
   "name": "convoker",
-  "version": "0.3.2",
+  "version": "0.3.3",
   "description": "A simple, type safe CLI framework for TypeScript.",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/trailfrost/convoker"
+  },
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "default": "./dist/index.js"
+      "import": "./dist/index.js"
     },
     "./command": {
       "types": "./dist/command.d.ts",
-      "default": "./dist/command.js"
+      "import": "./dist/command.js"
     },
     "./input": {
       "types": "./dist/types.d.ts",
-      "default": "./dist/input.js"
+      "import": "./dist/input.js"
     },
     "./color": {
       "types": "./dist/color.d.ts",
-      "default": "./dist/color.js"
+      "import": "./dist/color.js"
     },
     "./prompt": {
       "types": "./dist/prompt/index.d.ts",
-      "default": "./dist/prompt/index.js"
+      "import": "./dist/prompt/index.js"
     },
     "./prompt/raw": {
       "types": "./dist/prompt/raw.d.ts",
-      "default": "./dist/prompt/raw.js"
+      "import": "./dist/prompt/raw.js"
     },
     "./error": {
       "types": "./dist/error.d.ts",
-      "default": "./dist/error.js"
+      "import": "./dist/error.js"
     }
   },
   "type": "module",

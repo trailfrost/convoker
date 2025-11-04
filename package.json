@@ -1,47 +1,48 @@
 {
   "name": "convoker",
-  "version": "0.3.3",
+  "version": "0.3.4",
   "description": "A simple, type safe CLI framework for TypeScript.",
   "repository": {
     "type": "git",
     "url": "git+https://github.com/trailfrost/convoker"
   },
-  "main": "./dist/index.js",
-  "types": "./dist/index.d.ts",
+  "main": "./dist/index.mjs",
+  "types": "./dist/index.d.mts",
   "exports": {
     ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "types": "./dist/index.d.mts",
+      "import": "./dist/index.mjs"
     },
     "./command": {
-      "types": "./dist/command.d.ts",
-      "import": "./dist/command.js"
+      "types": "./dist/command.d.mts",
+      "import": "./dist/command.mjs"
     },
     "./input": {
-      "types": "./dist/types.d.ts",
-      "import": "./dist/input.js"
+      "types": "./dist/types.d.mts",
+      "import": "./dist/input.mjs"
     },
     "./color": {
-      "types": "./dist/color.d.ts",
-      "import": "./dist/color.js"
+      "types": "./dist/color.d.mts",
+      "import": "./dist/color.mjs"
     },
     "./prompt": {
-      "types": "./dist/prompt/index.d.ts",
-      "import": "./dist/prompt/index.js"
+      "types": "./dist/prompt/index.d.mts",
+      "import": "./dist/prompt/index.mjs"
     },
     "./prompt/raw": {
-      "types": "./dist/prompt/raw.d.ts",
-      "import": "./dist/prompt/raw.js"
+      "types": "./dist/prompt/raw.d.mts",
+      "import": "./dist/prompt/raw.mjs"
     },
     "./error": {
-      "types": "./dist/error.d.ts",
-      "import": "./dist/error.js"
+      "types": "./dist/error.d.mts",
+      "import": "./dist/error.mjs"
     }
   },
   "type": "module",
   "scripts": {
     "test": "vitest tests",
-    "build": "tsc -b tsconfig.app.json && tsc-alias -p tsconfig.app.json",
+    "build": "tsdown",
+    "check": "tsc -b tsconfig.app.json",
     "format": "prettier --check .",
     "format!": "prettier --write .",
     "lint": "eslint .",
@@ -65,7 +66,7 @@
     "eslint": "^9.36.0",
     "globals": "^16.4.0",
     "prettier": "^3.6.2",
-    "tsc-alias": "^1.8.16",
+    "tsdown": "^0.16.0",
     "typescript": "^5.9.2",
     "typescript-eslint": "^8.45.0",
     "valibot": "^1.1.0",
